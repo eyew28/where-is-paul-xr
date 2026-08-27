@@ -4,9 +4,6 @@
    Fixed footer at the bottom of the viewport.
    =================================================================== */
 
-/* Google Fonts — Fraunces (display) + JetBrains Mono (meta/badges) */
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
-
 /* ------------------------------------------------------------------
    1. DESIGN TOKENS  (extends existing dark-theme tokens)
    ------------------------------------------------------------------ */
