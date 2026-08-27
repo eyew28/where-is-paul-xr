@@ -422,11 +422,9 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
   // Resolve an image URL the same way the old render did (attachment:// -> withBase)
   const resolveImg = (src) => {
     if (!src) return '';
-    if (src.indexOf('attachment://') === 0) {
-      const stripped = src.replace('attachment://', '');
-      return window.withBase ? window.withBase(stripped) : stripped;
-    }
-    return src;
+    if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
+    if (/^(https?:)?\/\//.test(src) || src.indexOf('data:') === 0) return src;
+    return window.withBase ? window.withBase(src) : src;
   };
 
   // Jump the timeline scroll to the first entry of a given year
@@ -526,6 +524,9 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
                         ? React.createElement('img', {
                             src: imgSrc,
                             alt: moment.imageAlt || moment.title,
+                            width: 185,
+                            height: 310,
+                            decoding: 'async',
                             loading: 'lazy',
                             onError: function(e) {
                               var media = e.target.parentElement;
