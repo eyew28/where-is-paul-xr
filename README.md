@@ -1,7 +1,7 @@
 # Where is Paul?
 
 > Part of **[Sci-Fi Labs](https://github.com/paulvisciano)** — spatial apps for web, mobile, and XR.  
-> [Where is Paul?](https://paulvisciano.github.io/) · [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph) · [Musical Cubes](https://musical-cubes.vercel.app) · [Neuro Graph](https://paulvisciano.com/apps/neuro-graph)
+> [Where is Paul?](https://paulvisciano.com/apps/where-is-paul) · [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph) · [Musical Cubes](https://musical-cubes.vercel.app) · [Neuro Graph](https://paulvisciano.com/apps/neuro-graph)
 
 [![Where is Paul? — Watch the video](https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/where-is-paul.jpg)](https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/portfolio/where-is-paul-tablet.mp4)
 
@@ -11,7 +11,7 @@ A Sci-Fi app: a 3D globe and timeline built for the web and mobile first — a s
 
 Where is Paul? is the experience layer of a memory-mapping lineage. The moments, people, and places captured here feed into [Neuro Graph](https://github.com/paulvisciano/neuro-graph) — the first attempt to map memory as a connected network — and into [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph), which evolved that concept into a fully local, AI-driven memory palace. The same lived experience, expressed three ways: as a globe you travel, as a graph you orbit, and as a private intelligence that understands it.
 
-**Live project:** [paulvisciano.github.io](https://paulvisciano.github.io/)  
+**Live project:** [paulvisciano.com/apps/where-is-paul](https://paulvisciano.com/apps/where-is-paul)  
 **About Paul & other work:** [paulvisciano.vercel.app](https://paulvisciano.vercel.app/)
 
 ---
@@ -55,4 +55,4 @@ The moments published here are not just stories — they are nodes in a larger m
 ---
 
 **Built by** [Paul Visciano](https://paulvisciano.vercel.app/) · **Sci-Fi Labs**  
-**Live at** [paulvisciano.github.io](https://paulvisciano.github.io/)
+**Live at** [paulvisciano.com/apps/where-is-paul](https://paulvisciano.com/apps/where-is-paul)
