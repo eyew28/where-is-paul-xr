@@ -75,6 +75,268 @@ window.MomentRevealOverlay = ({ title, snippet, fullLink, onClose, id, image, im
   );
 };
 
+window.formatClusterDate = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+};
+
+window.resolveGlobeImage = (m) => {
+  if (!m) return null;
+  let src = m.isComic
+    ? (m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.png' : ''))
+    : m.image;
+  if (!src) return null;
+  if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
+  if (src.indexOf('https://') === 0 || src.indexOf('http://') === 0) return src;
+  return window.withBase ? window.withBase(src) : src;
+};
+
+window.buildGlobePhotoPins = (posts) => {
+  const groups = new Map();
+  (posts || []).forEach(function(post) {
+    if (!post || !post.location) return;
+    const key = (post.location.name || (Number(post.location.lat).toFixed(1) + ',' + Number(post.location.lng).toFixed(1))).toLowerCase();
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(post);
+    else groups.set(key, [post]);
+  });
+  const pins = [];
+  groups.forEach(function(group) {
+    const sorted = group.slice().sort(function(a, b) {
+      return new Date(b.date) - new Date(a.date);
+    });
+    let chosen = null;
+    let image = null;
+    for (let i = 0; i < sorted.length; i++) {
+      image = window.resolveGlobeImage(sorted[i]);
+      if (image) { chosen = sorted[i]; break; }
+    }
+    if (!chosen) return;
+    pins.push({
+      lat: chosen.location.lat,
+      lng: chosen.location.lng,
+      id: chosen.id,
+      image: image,
+      title: chosen.title || chosen.timelineHighlight || '',
+      locationName: chosen.location.name || '',
+      count: sorted.length,
+      ids: sorted.map(function(p) { return p.id; }),
+      moments: sorted.map(function(p) {
+        return {
+          id: p.id,
+          image: window.resolveGlobeImage(p),
+          title: p.title || p.timelineHighlight || '',
+          date: p.date
+        };
+      }).filter(function(m) { return !!m.image; })
+    });
+  });
+  return pins;
+};
+
+window.createGlobePhotoPin = (d) => {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'globe-photo-pin';
+  el.dataset.id = d.id || '';
+  el.dataset.ids = (d.ids || []).join(',');
+  el.setAttribute('aria-label', d.title || 'Moment');
+  const inner = document.createElement('span');
+  inner.className = 'globe-photo-pin-inner';
+  const img = document.createElement('img');
+  img.src = d.image;
+  img.alt = '';
+  img.draggable = false;
+  inner.appendChild(img);
+  if (d.count > 1) {
+    const badge = document.createElement('span');
+    badge.className = 'globe-photo-pin-count';
+    badge.textContent = String(d.count);
+    inner.appendChild(badge);
+  }
+  el.appendChild(inner);
+  el.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
+  el.addEventListener('mouseenter', function(e) {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
+    if (window.showGlobePinGallery) window.showGlobePinGallery(d, e.clientX, e.clientY);
+  });
+  el.addEventListener('mousemove', function(e) {
+    if (window.moveGlobePinGallery) window.moveGlobePinGallery(e.clientX, e.clientY);
+  });
+  el.addEventListener('mouseleave', function() {
+    if (window.hideGlobePinGallery) window.hideGlobePinGallery();
+  });
+  el.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.handleGlobePhotoClick) window.handleGlobePhotoClick(d);
+  });
+  return el;
+};
+
+window.GlobePinGallery = ({ moments, x, y, locationName, onSelect, onEnter, onLeave }) => {
+  if (!moments || !moments.length) return null;
+  const left = Math.max(12, Math.min(x + 16, window.innerWidth - 28));
+  const top = Math.max(12, Math.min(y, window.innerHeight - 28));
+  return React.createElement(
+    'div',
+    {
+      className: 'globe-pin-gallery',
+      style: { left: left + 'px', top: top + 'px' },
+      onMouseEnter: onEnter,
+      onMouseLeave: onLeave
+    },
+    locationName ? React.createElement('div', { className: 'globe-pin-gallery-label' }, locationName) : null,
+    React.createElement(
+      'div',
+      { className: 'globe-pin-gallery-row' },
+      moments.map(function(m) {
+        return React.createElement(
+          'button',
+          {
+            key: m.id,
+            type: 'button',
+            className: 'globe-pin-gallery-item',
+            title: m.title,
+            onClick: function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect(m);
+            }
+          },
+          React.createElement('img', { src: m.image, alt: m.title || '', draggable: false })
+        );
+      })
+    )
+  );
+};
+
+window.MomentSlideshow = ({ slides, onSelect }) => {
+  const [index, setIndex] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
+  React.useEffect(function() {
+    setIndex(0);
+  }, [slides && slides.length]);
+  React.useEffect(function() {
+    if (!slides || slides.length < 2 || paused) return undefined;
+    const id = setInterval(function() {
+      setIndex(function(i) { return (i + 1) % slides.length; });
+    }, 4200);
+    return function() { clearInterval(id); };
+  }, [slides, paused]);
+  if (!slides || !slides.length) return null;
+  const slide = slides[index % slides.length];
+  if (!slide) return null;
+  return React.createElement(
+    'button',
+    {
+      type: 'button',
+      className: 'globe-moment-show' + (paused ? ' is-paused' : ''),
+      'aria-label': slide.title || 'Moment slideshow',
+      onMouseEnter: function() { setPaused(true); },
+      onMouseLeave: function() { setPaused(false); },
+      onClick: function() { onSelect(slide); }
+    },
+    React.createElement('img', {
+      key: slide.id,
+      src: slide.image,
+      alt: slide.title || '',
+      className: 'globe-moment-show-img',
+      draggable: false
+    }),
+    React.createElement(
+      'div',
+      { className: 'globe-moment-show-meta' },
+      React.createElement('div', { className: 'globe-moment-show-title' }, slide.title),
+      React.createElement('div', { className: 'globe-moment-show-date' }, window.formatClusterDate(slide.date))
+    )
+  );
+};
+
+window.applyGlobePixelRatio = (globe, el) => {
+  if (!globe || !el) return;
+  const w = el.clientWidth;
+  const h = el.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  const renderer = typeof globe.renderer === 'function' ? globe.renderer() : globe.renderer;
+  if (typeof globe.width === 'function' && typeof globe.height === 'function') {
+    globe.width(w);
+    globe.height(h);
+  } else if (renderer && typeof renderer.setSize === 'function') {
+    renderer.setSize(w, h);
+  }
+  if (renderer && typeof renderer.setPixelRatio === 'function') {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  }
+  const camera = typeof globe.camera === 'function' ? globe.camera() : globe.camera;
+  if (camera && typeof camera.updateProjectionMatrix === 'function') {
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+};
+
+window.HexClusterSheet = ({ moments, onClose, onSelect, sheetRef }) => {
+  return React.createElement(
+    'div',
+    { className: 'hex-cluster-backdrop', onClick: onClose },
+    React.createElement(
+      'div',
+      {
+        className: 'hex-cluster-sheet',
+        ref: sheetRef,
+        role: 'dialog',
+        'aria-label': 'Moments in this location',
+        onClick: function(e) { e.stopPropagation(); }
+      },
+      React.createElement('div', { className: 'hex-cluster-handle', 'aria-hidden': 'true' }),
+      React.createElement(
+        'div',
+        { className: 'hex-cluster-head' },
+        React.createElement(
+          'h2',
+          { className: 'hex-cluster-title' },
+          moments.length + ' moment' + (moments.length === 1 ? '' : 's')
+        ),
+        React.createElement(
+          'button',
+          { className: 'close-button', onClick: onClose, type: 'button', 'aria-label': 'Close' },
+          '×'
+        )
+      ),
+      React.createElement(
+        'div',
+        { className: 'hex-cluster-list' },
+        moments.map(function(m) {
+          return React.createElement(
+            'button',
+            {
+              key: m.id,
+              type: 'button',
+              className: 'hex-cluster-row',
+              onClick: function() { onSelect(m); }
+            },
+            m.image
+              ? React.createElement('img', { src: m.image, alt: '', className: 'hex-cluster-thumb' })
+              : React.createElement('div', { className: 'hex-cluster-thumb hex-cluster-thumb--empty' }),
+            React.createElement(
+              'div',
+              { className: 'hex-cluster-row-body' },
+              React.createElement('div', { className: 'hex-cluster-row-title' }, m.title),
+              React.createElement(
+                'div',
+                { className: 'hex-cluster-row-meta' },
+                [m.locationName, window.formatClusterDate(m.date)].filter(Boolean).join(' · ')
+              )
+            )
+          );
+        })
+      )
+    )
+  );
+};
+
 window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, setSelectedTag, selectedYear, setSelectedYear, setZoomCallback }) => {
   if (typeof window.momentsInTime === 'undefined') {
     return React.createElement('div', null, 'Error: Data not loaded');
@@ -146,6 +408,17 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   const doubleTapTimeout = React.useRef(null);
   const pinchStartDistance = React.useRef(null);
   const pinchStartAltitude = React.useRef(null);
+  const selectedIdRef = React.useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const highlightedPointIdsRef = React.useRef(new Set());
+  const hexLodRef = React.useRef({ resolution: null, altitude: null });
+  const hexClusterRef = React.useRef(null);
+  const hexClusterSheetRef = React.useRef(null);
+  const [hexCluster, setHexCluster] = React.useState(null);
+  hexClusterRef.current = hexCluster;
+  const [pinGallery, setPinGallery] = React.useState(null);
+  const pinGalleryHideRef = React.useRef(null);
+  const [slideMoments, setSlideMoments] = React.useState([]);
 
     // Keep drawer state accessible globally
     React.useEffect(() => {
@@ -251,7 +524,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     };
 
     const handleTouchStart = (event) => {
-      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay')) {
+      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet')) {
         return;
       }
       if (event.touches.length === 1) {
@@ -311,7 +584,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     };
 
     const handleTouchMove = (event) => {
-      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay')) {
+      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet')) {
         return;
       }
       if (event.touches.length === 1 && popoverContent && touchStartX.current !== null && touchStartY.current !== null) {
@@ -349,7 +622,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
           const currentPOV = globeInstance.current.pointOfView();
           let newAltitude = pinchStartAltitude.current / scale;
 
-          const minAltitude = 0.8;
+          const minAltitude = 0.4;
           const maxAltitude = 3.5;
           newAltitude = Math.max(minAltitude, Math.min(maxAltitude, newAltitude));
 
@@ -392,16 +665,28 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   }, [popoverContent, setSelectedId, isDrawerOpen, isBlogDrawerOpen]);
 
   React.useEffect(() => {
-    if (!popoverContent) return;
+    if (!popoverContent && !hexCluster) return;
     const onKeyDown = (event) => {
       if (event.key !== 'Escape') return;
       event.preventDefault();
+      if (hexCluster) {
+        hexClusterRef.current = null;
+        setHexCluster(null);
+        if (!selectedIdRef.current) {
+          highlightedPointIdsRef.current = new Set();
+          if (globeInstance.current) {
+            const data = globeInstance.current.hexBinPointsData();
+            if (Array.isArray(data)) globeInstance.current.hexBinPointsData(data.slice());
+          }
+        }
+        return;
+      }
       setPopoverContent(null);
       setSelectedId(null);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [popoverContent, setSelectedId]);
+  }, [popoverContent, hexCluster, setSelectedId]);
 
   React.useEffect(() => {
     setZoomCallback(() => (post) => {
@@ -445,64 +730,86 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     });
   }, [setZoomCallback, setSelectedId]);
 
+  const refreshHexColors = () => {
+    if (!globeInstance.current) return;
+    const data = globeInstance.current.hexBinPointsData();
+    if (Array.isArray(data)) {
+      globeInstance.current.hexBinPointsData(data.slice());
+    }
+  };
+
+  const hexColorForBin = (d) => {
+    const points = d.points || [];
+    const selected = selectedIdRef.current;
+    const highlighted = highlightedPointIdsRef.current;
+    if (selected && points.some(p => p.id === selected)) return '#ffcc33';
+    if (highlighted && highlighted.size && points.some(p => highlighted.has(p.id))) return '#ffb347';
+    return weightColor(d.sumWeight);
+  };
+
+  const hexSideColorForBin = (d) => {
+    const points = d.points || [];
+    const selected = selectedIdRef.current;
+    const highlighted = highlightedPointIdsRef.current;
+    if (selected && points.some(p => p.id === selected)) return '#ffa500';
+    if (highlighted && highlighted.size && points.some(p => highlighted.has(p.id))) return '#e69500';
+    return weightColor(d.sumWeight);
+  };
+
   const onZoomHandler = () => {
     if (!globeInstance.current) return;
 
     const altitude = globeInstance.current.pointOfView().altitude;
-    const minAltitude = 0.8;
-    const minHexAltitude = 0.04;
-    const maxHexAltitude = 0.15;
     const isMobile = window.innerWidth <= 640;
+    let hexBinResolution;
+    let hexAltitude;
 
-    const zoomLevels = isMobile ? [
-      { threshold: 1, hexAltitude: 0.08, hexBinResolution: 3.5 },
-      { threshold: 0.7, hexAltitude: 0.05, hexBinResolution: 3 },
-    ] : [
-      { threshold: 1, hexAltitude: 0.08, hexBinResolution: 3.8 },
-      { threshold: 0.5, hexAltitude: 0.05, hexBinResolution: 4 },
-    ];
-
-    let hexAltitude = minAltitude;
-    let hexBinResolution = isMobile ? 4 : 5;
-
-    for (const level of zoomLevels) {
-      if (altitude >= level.threshold) {
-        hexAltitude = level.hexAltitude;
-        hexBinResolution = level.hexBinResolution;
-        break;
-      }
+    if (isMobile) {
+      if (altitude >= 1.5) { hexBinResolution = 3; hexAltitude = 0.12; }
+      else { hexBinResolution = 3; hexAltitude = 0.09; }
+    } else {
+      if (altitude >= 1.6) { hexBinResolution = 3; hexAltitude = 0.11; }
+      else if (altitude >= 0.85) { hexBinResolution = 3; hexAltitude = 0.09; }
+      else { hexBinResolution = 4; hexAltitude = 0.07; }
     }
 
-    globeInstance.current.hexBinResolution(hexBinResolution);
-    globeInstance.current.hexAltitude(hexAltitude);
-    globeInstance.current.controls().autoRotate = altitude > 2.0;
+    const prev = hexLodRef.current;
+    if (prev.resolution !== hexBinResolution) {
+      globeInstance.current.hexBinResolution(hexBinResolution);
+    }
+    if (prev.altitude !== hexAltitude) {
+      globeInstance.current.hexAltitude(hexAltitude);
+    }
+    hexLodRef.current = { resolution: hexBinResolution, altitude: hexAltitude };
+
+    const canRotate = altitude > 2.0 && !selectedIdRef.current && !hexClusterRef.current;
+    globeInstance.current.controls().autoRotate = canRotate;
   };
 
   React.useEffect(() => {
     try {
-      const textureLoader = new THREE.TextureLoader();
-      const globeTexture = textureLoader.load('//unpkg.com/three-globe/example/img/earth-night.jpg');
-      globeTexture.anisotropy = 4;
-      globeTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      globeTexture.magFilter = THREE.LinearFilter;
-
-      globeInstance.current = Globe()
+      globeInstance.current = Globe({
+        rendererConfig: { antialias: true, alpha: true, powerPreference: 'high-performance' }
+      })
         .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
         .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
-        .globeMaterial(new THREE.MeshPhongMaterial({
-          map: globeTexture,
-          side: THREE.DoubleSide,
-          shininess: 5,
-        }))
         .pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 0)
         .hexBinPointsData([])
         .hexBinPointLat('lat')
         .hexBinPointLng('lng')
         .hexBinPointWeight('weight')
-        .hexBinResolution(5)
-        .hexTopColor(d => weightColor(d.sumWeight))
-        .hexSideColor(d => weightColor(d.sumWeight))
+        .hexBinResolution(3)
+        .hexMargin(0.1)
+        .hexAltitude(0.11)
+        .hexTopColor(hexColorForBin)
+        .hexSideColor(hexSideColorForBin)
         .hexLabel(d => `${Math.round(d.sumWeight)} days`)
+        .htmlElementsData([])
+        .htmlLat('lat')
+        .htmlLng('lng')
+        .htmlAltitude(0.12)
+        .htmlTransitionDuration(0)
+        .htmlElement(window.createGlobePhotoPin)
         .ringsData([])
         .ringColor(() => ringColorInterpolator)
         .ringMaxRadius(4)
@@ -510,6 +817,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         .ringRepeatPeriod(2000)
         .onZoom(onZoomHandler)
         .onHexHover(hex => {
+          if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
           if (hex && hex.points.length > 0 && !popoverContent && !isZooming.current) {
             // Select the most recent moment for hover
             const sortedPoints = hex.points.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -531,59 +839,104 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       // Expose globe instance to window
       window.globeInstance = globeInstance.current;
 
+      window.applyGlobePixelRatio(globeInstance.current, document.getElementById('globeViz'));
       onZoomHandler();
+
+      const sharpenGlobeTexture = function() {
+        const g = globeInstance.current;
+        if (!g) return;
+        const mat = typeof g.globeMaterial === 'function' ? g.globeMaterial() : null;
+        if (!mat || !mat.map) return false;
+        mat.shininess = 5;
+        mat.map.generateMipmaps = false;
+        mat.map.minFilter = THREE.LinearFilter;
+        mat.map.magFilter = THREE.LinearFilter;
+        mat.map.needsUpdate = true;
+        return true;
+      };
+      if (!sharpenGlobeTexture()) {
+        let tries = 0;
+        const waitForMap = setInterval(function() {
+          tries += 1;
+          if (sharpenGlobeTexture() || tries > 40) clearInterval(waitForMap);
+        }, 100);
+      }
 
       try {
         globeInstance.current.controls().autoRotate = true;
         globeInstance.current.controls().autoRotateSpeed = 0.1;
         globeInstance.current.controls().enableZoom = true;
-        globeInstance.current.controls().minDistance = 180;
+        globeInstance.current.controls().minDistance = 145;
         globeInstance.current.controls().maxDistance = 700;
       } catch (error) {
       }
 
       globeInstance.current.onHexClick(hex => {
         try {
-          if (!hex || hex.points.length === 0) {
+          if (!hex || !hex.points || hex.points.length === 0) {
             return;
           }
 
           if (isZooming.current) {
             return;
           }
-          isZooming.current = true;
           globeInstance.current.controls().autoRotate = false;
 
-          // Sort points by date (descending) and select the most recent
-          // If multiple points have the same date, prefer comic moments
-          const sortedPoints = hex.points.sort((a, b) => {
+          const sortedPoints = hex.points.slice().sort((a, b) => {
             const dateA = new Date(a.date);
             const dateB = new Date(b.date);
             if (dateA.getTime() === dateB.getTime()) {
-              // Same date - prefer comic moments
               const aIsComic = window.momentsInTime.find(m => m.id === a.id)?.isComic || false;
               const bIsComic = window.momentsInTime.find(m => m.id === b.id)?.isComic || false;
-              return bIsComic - aIsComic; // Comic moments first
+              return bIsComic - aIsComic;
             }
-            return dateB - dateA; // Most recent first
+            return dateB - dateA;
           });
-          const post = sortedPoints[0];
+
+          const uniquePoints = [];
+          const seen = new Set();
+          for (let i = 0; i < sortedPoints.length; i++) {
+            const p = sortedPoints[i];
+            if (!p || !p.id || seen.has(p.id)) continue;
+            seen.add(p.id);
+            uniquePoints.push(p);
+          }
+          if (uniquePoints.length === 0) return;
+
+          highlightedPointIdsRef.current = seen;
+          const data = globeInstance.current.hexBinPointsData();
+          if (Array.isArray(data)) globeInstance.current.hexBinPointsData(data.slice());
+
+          if (uniquePoints.length > 1) {
+            if (window.openHexCluster) {
+              window.openHexCluster(uniquePoints);
+            }
+            const focus = uniquePoints[0];
+            const isMobile = window.innerWidth <= 640;
+            const currentAlt = globeInstance.current.pointOfView().altitude;
+            globeInstance.current.pointOfView({
+              lat: focus.lat - (isMobile ? 10 : 8),
+              lng: focus.lng,
+              altitude: Math.min(currentAlt, 1.15)
+            }, 800);
+            return;
+          }
+
+          const post = uniquePoints[0];
+          isZooming.current = true;
           if (post && post.id) {
             setSelectedId(post.id);
             handleTimelineClick(post);
           }
 
-          const finalLat = post.lat;
-          const finalLng = post.lng;
-
-          // Direct zoom with adjusted camera angle
+          const isMobile = window.innerWidth <= 640;
           globeInstance.current.pointOfView({
-            lat: finalLat - 15,  // Reduced tilt angle for lower position
-            lng: finalLng,
-            altitude: 1.5
-          }, 1500);
+            lat: post.lat - (isMobile ? 8 : 12),
+            lng: post.lng,
+            altitude: isMobile ? 0.65 : 0.7
+          }, 1200);
 
-          waitForZoom(1500).then(() => {
+          waitForZoom(1200).then(() => {
             if (window.showMomentCard) {
               window.showMomentCard(post);
             }
@@ -612,6 +965,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         }
       };
     } catch (error) {
+      console.error('Globe init failed', error);
     }
   }, []);
 
@@ -621,20 +975,9 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     const resizeGlobe = () => {
       const el = document.getElementById('globeViz');
       if (!globeInstance.current || !el) return;
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w <= 0 || h <= 0) return;
       try {
+        window.applyGlobePixelRatio(globeInstance.current, el);
         const g = globeInstance.current;
-        const camera = typeof g.camera === 'function' ? g.camera() : g.camera;
-        if (camera && typeof camera.updateProjectionMatrix === 'function') {
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-        }
-        const renderer = g.renderer && g.renderer();
-        if (renderer && typeof renderer.setSize === 'function') {
-          renderer.setSize(w, h);
-        }
         if (typeof g.render === 'function') {
           g.render();
         }
@@ -656,14 +999,20 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
 
   // Apply highlight to selected hex and update rings
   React.useEffect(() => {
-    if (globeInstance.current) {
-      const hexBins = globeInstance.current.hexBinPointsData();
-      hexBins.forEach(hex => {
-        hex.highlight = hex.points?.some(point => point.id === selectedId);
-      });
-      globeInstance.current.hexBinPointsData(hexBins); // Re-render with updated highlight
+    selectedIdRef.current = selectedId;
+    if (selectedId) {
+      highlightedPointIdsRef.current = new Set([selectedId]);
+    } else if (!hexClusterRef.current) {
+      highlightedPointIdsRef.current = new Set();
+    }
+    refreshHexColors();
 
-      // Update rings for the selected moment
+    document.querySelectorAll('.globe-photo-pin').forEach(function(el) {
+      const ids = (el.dataset.ids || el.dataset.id || '').split(',');
+      el.classList.toggle('is-selected', !!(selectedId && ids.indexOf(selectedId) >= 0));
+    });
+
+    if (globeInstance.current) {
       if (selectedId) {
         const selectedPost = window.momentsInTime.find(post => post.id === selectedId);
         if (selectedPost) {
@@ -685,13 +1034,22 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   }, [selectedId]);
 
   React.useEffect(() => {
+    const filteredPosts = window.momentsInTime.filter(post => {
+      const tagMatch = selectedTag === "All" || post.tags.includes(selectedTag);
+      const yearMatch = !selectedYear || selectedYear === "All" || new Date(post.date).getUTCFullYear().toString() === selectedYear;
+      return tagMatch && yearMatch;
+    });
+    setSlideMoments(filteredPosts.map(function(p) {
+      return {
+        id: p.id,
+        image: window.resolveGlobeImage(p),
+        title: p.title || p.timelineHighlight || '',
+        date: p.date,
+        lat: p.location && p.location.lat,
+        lng: p.location && p.location.lng
+      };
+    }).filter(function(s) { return !!s.image; }));
     if (globeInstance.current) {
-      const filteredPosts = window.momentsInTime.filter(post => {
-        const tagMatch = selectedTag === "All" || post.tags.includes(selectedTag);
-        const yearMatch = !selectedYear || selectedYear === "All" || new Date(post.date).getUTCFullYear().toString() === selectedYear;
-        return tagMatch && yearMatch;
-      });
-
       const hexBinData = filteredPosts.map(post => ({
         lat: post.location.lat,
         lng: post.location.lng,
@@ -708,6 +1066,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       }));
 
       globeInstance.current.hexBinPointsData(hexBinData);
+      globeInstance.current.htmlElementsData(window.buildGlobePhotoPins(filteredPosts));
       onZoomHandler();
     }
   }, [selectedTag, selectedYear]);
@@ -715,6 +1074,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   React.useEffect(() => {
     setSelectedId(null);
     setPopoverContent(null);
+    setHexCluster(null);
+    highlightedPointIdsRef.current = new Set();
     if (globeInstance.current) {
       globeInstance.current.ringsData([]); // Clear rings when filters change
     }
@@ -1023,7 +1384,122 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     }
   };
 
+  const focusClusterMoment = (m) => {
+    if (!m) return;
+    setHexCluster(null);
+    const full = (window.momentsInTime || []).find(x => x.id === m.id) || m;
+    highlightedPointIdsRef.current = new Set([full.id]);
+    showMomentCard(full);
+    if (!globeInstance.current) return;
+    isZooming.current = true;
+    globeInstance.current.controls().autoRotate = false;
+    const lat = (full.location && full.location.lat) || m.lat;
+    const lng = (full.location && full.location.lng) || m.lng;
+    const isMobile = window.innerWidth <= 640;
+    globeInstance.current.pointOfView({
+      lat: lat - (isMobile ? 8 : 12),
+      lng: lng,
+      altitude: isMobile ? 0.65 : 0.7
+    }, 1200);
+    waitForZoom(1200).then(() => {
+      isZooming.current = false;
+    });
+  };
+
+  const closeHexCluster = () => {
+    hexClusterRef.current = null;
+    setHexCluster(null);
+    if (!selectedIdRef.current) {
+      highlightedPointIdsRef.current = new Set();
+      refreshHexColors();
+    }
+    onZoomHandler();
+  };
+
   window.showMomentCard = showMomentCard;
+  window.showGlobePinGallery = function(d, x, y) {
+    if (pinGalleryHideRef.current) {
+      clearTimeout(pinGalleryHideRef.current);
+      pinGalleryHideRef.current = null;
+    }
+    if (!d || !d.moments || !d.moments.length) return;
+    setPinGallery({
+      moments: d.moments,
+      locationName: d.locationName || '',
+      x: x,
+      y: y
+    });
+  };
+  window.moveGlobePinGallery = function(x, y) {
+    setPinGallery(function(prev) {
+      if (!prev) return prev;
+      return {
+        moments: prev.moments,
+        locationName: prev.locationName,
+        x: x,
+        y: y
+      };
+    });
+  };
+  window.hideGlobePinGallery = function() {
+    if (pinGalleryHideRef.current) clearTimeout(pinGalleryHideRef.current);
+    pinGalleryHideRef.current = setTimeout(function() {
+      setPinGallery(null);
+    }, 160);
+  };
+  window.handleGlobePhotoClick = (d) => {
+    if (!d) return;
+    const ids = d.ids && d.ids.length ? d.ids : (d.id ? [d.id] : []);
+    const points = (window.momentsInTime || []).filter(function(m) {
+      return ids.indexOf(m.id) >= 0;
+    }).map(function(m) {
+      return {
+        id: m.id,
+        date: m.date,
+        lat: m.location && m.location.lat,
+        lng: m.location && m.location.lng,
+        label: m.location && m.location.name,
+        title: m.title,
+        image: m.image
+      };
+    });
+    if (!points.length) return;
+    globeInstance.current && globeInstance.current.controls() && (globeInstance.current.controls().autoRotate = false);
+    if (points.length > 1) {
+      window.openHexCluster(points);
+      const focus = points[0];
+      if (globeInstance.current && focus.lat != null) {
+        const isMobile = window.innerWidth <= 640;
+        const currentAlt = globeInstance.current.pointOfView().altitude;
+        globeInstance.current.pointOfView({
+          lat: focus.lat - (isMobile ? 10 : 8),
+          lng: focus.lng,
+          altitude: Math.min(currentAlt, 1.15)
+        }, 800);
+      }
+      return;
+    }
+    focusClusterMoment(points[0]);
+  };
+  window.openHexCluster = (points) => {
+    if (!points || !points.length) return;
+    setPopoverContent(null);
+    const moments = points.map(function(p) {
+      const full = (window.momentsInTime || []).find(x => x.id === p.id) || p;
+      return {
+        id: full.id,
+        title: full.title || full.timelineHighlight || '',
+        date: full.date,
+        locationName: (full.location && full.location.name) || p.label || '',
+        image: resolveMomentImage(full),
+        stayDuration: full.stayDuration || p.weight,
+        isComic: !!full.isComic,
+        lat: (full.location && full.location.lat) || p.lat,
+        lng: (full.location && full.location.lng) || p.lng
+      };
+    });
+    setHexCluster({ moments: moments, lat: moments[0].lat, lng: moments[0].lng });
+  };
   window.stepOpenCard = (dir, opts) => {
     const moments = window.momentsInTime || [];
     if (!moments.length) return null;
@@ -1305,6 +1781,35 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         )
       )
     ),
+    pinGallery && React.createElement(window.GlobePinGallery, {
+      moments: pinGallery.moments,
+      x: pinGallery.x,
+      y: pinGallery.y,
+      locationName: pinGallery.locationName,
+      onEnter: function() {
+        if (pinGalleryHideRef.current) {
+          clearTimeout(pinGalleryHideRef.current);
+          pinGalleryHideRef.current = null;
+        }
+      },
+      onLeave: function() {
+        if (window.hideGlobePinGallery) window.hideGlobePinGallery();
+      },
+      onSelect: function(m) {
+        setPinGallery(null);
+        focusClusterMoment(m);
+      }
+    }),
+    !popoverContent && !hexCluster && !isBlogDrawerOpen && slideMoments.length > 0 && React.createElement(window.MomentSlideshow, {
+      slides: slideMoments,
+      onSelect: function(m) { focusClusterMoment(m); }
+    }),
+    hexCluster && React.createElement(window.HexClusterSheet, {
+      moments: hexCluster.moments,
+      sheetRef: hexClusterSheetRef,
+      onClose: closeHexCluster,
+      onSelect: focusClusterMoment
+    }),
     popoverContent && React.createElement(window.MomentRevealOverlay, {
       title: popoverContent.title,
       snippet: popoverContent.snippet,
