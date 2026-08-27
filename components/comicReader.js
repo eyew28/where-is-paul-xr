@@ -235,8 +235,11 @@ window.ComicReader = ({ content, onClose }) => {
         case 'ArrowLeft':
         case 'ArrowUp':
           e.preventDefault();
-          // If on cover, navigate to previous episode's cover
-          if (showCover) {
+          if (showCover && window.stepOpenCard) {
+            const id = episodeData && episodeData.id;
+            handleClose();
+            window.stepOpenCard(-1, { currentId: id });
+          } else if (showCover) {
             loadPreviousEpisode();
           } else {
             previousPage();
@@ -244,11 +247,21 @@ window.ComicReader = ({ content, onClose }) => {
           break;
         case 'ArrowRight':
         case 'ArrowDown':
-        case ' ':
-          e.preventDefault(); // Prevent space bar scrolling
-          // If on cover, navigate to next episode's cover
-          if (showCover) {
+          e.preventDefault();
+          if (showCover && window.stepOpenCard) {
+            const id = episodeData && episodeData.id;
+            handleClose();
+            window.stepOpenCard(1, { currentId: id });
+          } else if (showCover) {
             loadNextEpisode();
+          } else {
+            nextPage();
+          }
+          break;
+        case ' ':
+          e.preventDefault();
+          if (showCover) {
+            openComicBook();
           } else {
             nextPage();
           }
@@ -270,11 +283,7 @@ window.ComicReader = ({ content, onClose }) => {
           // If in fullscreen, exit fullscreen first (browser will handle it)
           // If not in fullscreen, go back to cover if viewing pages, or close if on cover
           if (!isFullscreen) {
-            if (showCover) {
-              handleClose();
-            } else {
-              goBackToCover();
-            }
+            handleClose();
           }
           // Note: if in fullscreen, browser's Esc handler will exit fullscreen
           // and our fullscreenchange listener will update the state
@@ -284,7 +293,7 @@ window.ComicReader = ({ content, onClose }) => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, isFullscreen, showCover]);
+  }, [onClose, isFullscreen, showCover, episodeData]);
 
   // Helper function to get all comic episodes sorted by date
   const getAllComicEpisodes = React.useCallback(() => {
@@ -639,27 +648,15 @@ window.ComicReader = ({ content, onClose }) => {
     }, 50);
   };
 
+  React.useEffect(() => {
+    if (content && content.skipCover && episodeData && showCover) {
+      openComicBook();
+    }
+  }, [content, episodeData, showCover]);
+
   // Function to go back to cover from first page
   const goBackToCover = () => {
-    setShowCover(true);
-    setFlipbookReady(false);
-    setIsLoading(false);
-    setCurrentPage(1);
-    currentPageRef.current = 1;
-    flipbookCreatedRef.current = false; // Reset flipbook creation flag
-    setInitialSlideIndex(null); // Reset so re-open starts at slide 1
-    updateGlobalState({ 
-      showCover: true, 
-      flipbookReady: false, 
-      isLoading: false, 
-      currentPage: 1,
-      flipbookCreated: false // Reset global flipbook creation flag
-    });
-    // Clear #slide-N from URL so re-opening starts at slide 1
-    const basePath = (episodeData?.fullLink || '').replace(/#.*$/, '');
-    if (basePath && window.location.hash) {
-      window.history.replaceState({}, '', window.withBase ? window.withBase(basePath) : basePath);
-    }
+    handleClose();
   };
 
   // Android back button: same behavior as Escape/exit - fullscreen→exit, pages→cover, cover→close
@@ -1026,7 +1023,11 @@ window.ComicReader = ({ content, onClose }) => {
     if (overlay) {
       overlay.classList.remove('hidden');
     }
+    const moment = (window.momentsInTime || []).find(m => m.id === (episodeData && episodeData.id));
     onClose();
+    if (moment && window.showMomentCard) {
+      setTimeout(function() { window.showMomentCard(moment); }, 0);
+    }
   };
 
   const handleOverlayClick = (e) => {
@@ -1270,12 +1271,10 @@ window.ComicReader = ({ content, onClose }) => {
       if (document.fullscreenElement) {
         document.exitFullscreen().then(() => {
           setIsFullscreen(false);
-          if (showCover) handleClose();
-          else goBackToCover();
+          handleClose();
         });
       } else {
-        if (showCover) handleClose();
-        else goBackToCover();
+        handleClose();
       }
     };
     const headerButtons = renderHeaderButtons(styles, {

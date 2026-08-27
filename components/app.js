@@ -129,49 +129,11 @@ window.App = () => {
         // Continue with normal flow to show the episode
       }
       
-      // For comic episodes, skip the overlay entirely and go straight to comic
-      if (momentIsComic) {
-        console.log('Comic episode detected - bypassing overlay, opening comic directly');
-        // Hide the overlay immediately for comics
-        updateOverlayMessage(null);
-        const overlay = document.getElementById('overlay');
-        if (overlay) {
-          overlay.classList.add('hidden');
-        }
-        console.log('Comic episode detected, attempting to open comic for:', moment.id);
-        
-        // Function to try opening the comic
-        const tryOpenComic = (attempts = 0) => {
-          if (window.handleOpenBlogPost) {
-            console.log('Opening comic via handleOpenBlogPost');
-            window.handleOpenBlogPost(moment.id);
-            // Clear the overlay message when comic opens
-            setTimeout(() => {
-              updateOverlayMessage(null);
-              const overlay = document.getElementById('overlay');
-              if (overlay) {
-                overlay.classList.add('hidden');
-              }
-            }, 500);
-          } else if (attempts < 10) {
-            // Retry if handleOpenBlogPost isn't ready yet
-            console.log(`handleOpenBlogPost not ready, retrying... (attempt ${attempts + 1})`);
-            setTimeout(() => tryOpenComic(attempts + 1), 200);
-          } else {
-            console.error('Failed to open comic: handleOpenBlogPost never became available');
-            updateOverlayMessage('Unable to load comic book - please try refreshing');
-          }
-        };
-        
-        // Wait a bit for the zoom to start, then try opening the comic
-        setTimeout(tryOpenComic, 100);
-      } else {
-        // For non-comic episodes, show the normal overlay message
-        updateOverlayMessage(`${moment.title}...`, false, null);
+      if (window.showMomentCard) {
+        window.showMomentCard(moment);
       }
-      
       if (zoomCallback) {
-        zoomCallback(moment); // Trigger zoom to the moment's location
+        zoomCallback(moment);
       }
       // Normalize and update the URL only if it doesn't already match
       let intendedPath;
