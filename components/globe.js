@@ -164,7 +164,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         setPopoverContent(null);
         setSelectedId(null);
       }
-      if (isDrawerOpen && drawerRef.current && !drawerRef.current.contains(event.target) && !event.target.closest('.filter-toggle-button')) {
+      if (isDrawerOpen && drawerRef.current && !drawerRef.current.querySelector('.filter-drawer-inner')?.contains(event.target) && !event.target.closest('.filter-toggle') && !event.target.closest('.filter-active-chips')) {
         setIsDrawerOpen(false);
       }
       if (isBlogDrawerOpen && blogDrawerRef.current && !blogDrawerRef.current.contains(event.target) && !event.target.closest('.blog-post-drawer') && !event.target.closest('.comic-episode-overlay')) {
@@ -1019,28 +1019,42 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     { className: 'container mx-auto main-content' },
     React.createElement(
       'div',
-      { className: 'filter-drawer-container', ref: drawerRef },
+      { className: 'filter-topbar' },
       React.createElement(
-        'div',
-        { className: 'filter-toggle-wrapper' },
-        React.createElement(
-          'button',
-          {
-            className: `filter-toggle-button ${isDrawerOpen ? 'open' : ''}`,
-            onClick: () => setIsDrawerOpen(!isDrawerOpen)
-          },
-          'Filters',
-          React.createElement('span', { className: 'chevron' }, isDrawerOpen ? '▲' : '▼')
+        'button',
+        {
+          className: `filter-toggle ${isDrawerOpen ? 'is-open' : ''} ${activeFilters.length > 0 ? 'is-active' : ''}`,
+          onClick: () => setIsDrawerOpen(!isDrawerOpen),
+          'aria-expanded': isDrawerOpen ? 'true' : 'false',
+          'aria-controls': 'filter-drawer'
+        },
+        React.createElement('span', { className: 'filter-toggle-icon' },
+          React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+            React.createElement('path', { d: 'M3 4h18l-7 8v7l-4 2v-9L3 4z' })
+          )
         ),
-        activeFilters.length > 0 && React.createElement(
-          'div',
-          { className: 'active-filters' },
-          activeFilters.map(filter =>
+        React.createElement('span', { className: 'filter-toggle-label' }, 'Filters'),
+        activeFilters.length > 0 ? React.createElement('span', { className: 'filter-toggle-badge' }, activeFilters.length) : null,
+        React.createElement('span', { className: 'filter-toggle-chevron' },
+          React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' },
+            React.createElement('polyline', { points: '6 9 12 15 18 9' })
+          )
+        )
+      ),
+      activeFilters.length > 0 && React.createElement(
+        'div',
+        { className: 'filter-active-chips' },
+        activeFilters.map(filter =>
+          React.createElement(
+            'span',
+            { key: `${filter.type}-${filter.label}`, className: 'filter-chip' },
+            React.createElement('span', { className: 'filter-chip-kind' }, filter.type.toUpperCase()),
+            React.createElement('span', { className: 'filter-chip-value' }, filter.label),
             React.createElement(
               'button',
               {
-                key: `${filter.type}-${filter.label}`,
-                className: 'filter-pill',
+                className: 'filter-chip-close',
+                'aria-label': `Clear ${filter.type} filter`,
                 onClick: () => {
                   if (filter.type === 'year') {
                     setSelectedYear('All');
@@ -1049,131 +1063,185 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
                   }
                 }
               },
-              React.createElement('span', { className: 'filter-pill-label' }, filter.display),
-              React.createElement('span', { className: 'filter-pill-close' }, '×')
+              React.createElement('svg', { width: 11, height: 11, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round' },
+                React.createElement('line', { x1: 6, y1: 6, x2: 18, y2: 18 }),
+                React.createElement('line', { x1: 18, y1: 6, x2: 6, y2: 18 })
+              )
             )
           )
-        )
-      ),
-      isDrawerOpen && React.createElement(
-        'div',
-        { className: 'filter-drawer open' },
+        ),
         React.createElement(
           'button',
           {
-            className: 'close-button',
-            onClick: () => setIsDrawerOpen(false)
+            className: 'filter-clear-all',
+            onClick: () => { setSelectedYear('All'); setSelectedTag('All'); }
           },
-          '×'
-        ),
-        characters.length > 0 && React.createElement(
+          'Clear all'
+        )
+      )
+    ),
+    React.createElement(
+      'div',
+      { className: `filter-drawer ${isDrawerOpen ? 'is-open' : ''}`, ref: drawerRef, id: 'filter-drawer', role: 'region', 'aria-label': 'Filters' },
+      React.createElement(
+        'div',
+        { className: 'filter-drawer-inner' },
+        React.createElement(
           'div',
-          { className: 'characters-container' },
+          { className: 'filter-drawer-head' },
           React.createElement(
             'div',
-            { className: 'characters-header' },
+            { className: 'filter-drawer-title' },
+            React.createElement('span', { className: 'filter-drawer-eyebrow' }, 'Field Log'),
+            'Filters'
+          ),
+          React.createElement(
+            'button',
+            {
+              className: 'filter-close-btn',
+              'aria-label': 'Close filters',
+              onClick: () => setIsDrawerOpen(false)
+            },
+            React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' },
+              React.createElement('line', { x1: 6, y1: 6, x2: 18, y2: 18 }),
+              React.createElement('line', { x1: 18, y1: 6, x2: 6, y2: 18 })
+            )
+          )
+        ),
+        React.createElement(
+          'div',
+          { className: 'filter-drawer-body' },
+          characters.length > 0 && React.createElement(
+            'div',
+            { className: 'filter-section' },
             React.createElement(
-              'h3',
-              { className: 'characters-title' },
-              'Characters'
+              'div',
+              { className: 'filter-section-head' },
+              React.createElement('span', { className: 'filter-section-icon' },
+                React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                  React.createElement('circle', { cx: 12, cy: 8, r: 4 }),
+                  React.createElement('path', { d: 'M4 21c0-4 4-6 8-6s8 2 8 6' })
+                )
+              ),
+              React.createElement('span', { className: 'filter-section-label' }, 'Characters'),
+              React.createElement('span', { className: 'filter-section-hint' }, 'Tap to find out more about that person')
+            ),
+            React.createElement(
+              'div',
+              { className: 'filter-char-row' },
+              characters
+                .filter(character => character.avatar)
+                .map(character =>
+                  React.createElement(
+                    'button',
+                    {
+                      key: `character-${character.id}`,
+                      className: 'character-avatar-button',
+                      title: character.name,
+                      onClick: () => {
+                        handleOpenCharacterComic(character.id);
+                      }
+                    },
+                    React.createElement('span', { className: 'character-avatar-img-wrapper' },
+                      React.createElement('img', {
+                        src: character.avatar,
+                        alt: character.name,
+                        className: 'character-avatar-img',
+                        onError: (e) => {
+                          const item = e.target.closest('.character-avatar-button');
+                          if (item) {
+                            item.style.display = 'none';
+                          }
+                        }
+                      })
+                    ),
+                    React.createElement('span', { className: 'character-avatar-name' }, character.name),
+                    character.nickname
+                      ? React.createElement('span', { className: 'character-avatar-nickname' }, character.nickname)
+                      : null
+                  )
+                ),
+              React.createElement(
+                'button',
+                {
+                  className: 'character-comic-button',
+                  onClick: handleOpenCharacterComic,
+                  title: 'Open Character Bible Comic Book'
+                },
+                '📚'
+              )
             )
           ),
           React.createElement(
             'div',
-            { className: 'characters-avatars' },
-            characters
-              .filter(character => character.avatar) // Only show characters with avatar paths
-              .map(character =>
-                React.createElement(
-                  'div',
-                  {
-                    key: `character-${character.id}`,
-                    className: 'character-item'
-                  },
-                  React.createElement(
-                    'button',
-                    {
-                      className: 'character-avatar',
-                      title: character.name,
-                        onClick: () => {
-                        // Open character comic book and navigate to this character's slide
-                        handleOpenCharacterComic(character.id);
-                      }
-                    },
-                    React.createElement(
-                      'div',
-                      { 
-                        className: 'character-avatar-wrapper'
-                      },
-                      React.createElement(
-                        'img',
-                        {
-                          src: character.avatar,
-                          alt: character.name,
-                          className: 'character-avatar-image',
-                          onError: (e) => {
-                            // If image fails to load, hide the entire character item
-                            const item = e.target.closest('.character-item');
-                            if (item) {
-                              item.style.display = 'none';
-                            }
-                          }
-                        }
-                      )
-                    )
-                  ),
-                  React.createElement(
-                    'div',
-                    { className: 'character-name' },
-                    character.name
-                  ),
-                  character.nickname
-                    ? React.createElement(
-                        'div',
-                        { className: 'character-nickname' },
-                        character.nickname
-                      )
-                    : null
+            { className: 'filter-section' },
+            React.createElement(
+              'div',
+              { className: 'filter-section-head' },
+              React.createElement('span', { className: 'filter-section-icon' },
+                React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                  React.createElement('rect', { x: 3, y: 5, width: 18, height: 16, rx: 2 }),
+                  React.createElement('line', { x1: 3, y1: 10, x2: 21, y2: 10 }),
+                  React.createElement('line', { x1: 8, y1: 3, x2: 8, y2: 7 }),
+                  React.createElement('line', { x1: 16, y1: 3, x2: 16, y2: 7 })
                 )
               ),
+              React.createElement('span', { className: 'filter-section-label' }, 'Year'),
+              React.createElement('span', { className: 'filter-section-hint' },
+                selectedYear && selectedYear !== 'All'
+                  ? ['Exploring ', React.createElement('b', { key: 'year-hint-b' }, selectedYear)]
+                  : 'All years'
+              )
+            ),
             React.createElement(
-              'button',
-              {
-                className: 'character-comic-button',
-                onClick: handleOpenCharacterComic,
-                title: 'Open Character Bible Comic Book'
-              },
-              '📚'
+              'div',
+              { className: 'filter-pills filter-pills-scroll' },
+              yearTags.map(year =>
+                React.createElement(
+                  'button',
+                  {
+                    key: `year-${year}`,
+                    onClick: () => setSelectedYear(year),
+                    className: `filter-pill ${selectedYear === year ? 'is-active' : ''}`
+                  },
+                  year
+                )
+              )
             )
-          )
-        ),
-        React.createElement(
-          'div',
-          { className: 'year-filter-container' },
-          yearTags.map(year =>
+          ),
+          React.createElement(
+            'div',
+            { className: 'filter-section' },
             React.createElement(
-              'button',
-              {
-                key: `year-${year}`,
-                onClick: () => setSelectedYear(year),
-                className: `filter-tag year-tag ${selectedYear === year ? 'active' : ''}`
-              },
-              year
-            )
-          )
-        ),
-        React.createElement(
-          'div',
-          { className: 'tag-filter-container' },
-          regularTags.map(tag =>
+              'div',
+              { className: 'filter-section-head' },
+              React.createElement('span', { className: 'filter-section-icon' },
+                React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                  React.createElement('path', { d: 'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z' }),
+                  React.createElement('circle', { cx: 7.5, cy: 7.5, r: 1.5 })
+                )
+              ),
+              React.createElement('span', { className: 'filter-section-label' }, 'Tag'),
+              React.createElement('span', { className: 'filter-section-hint' },
+                selectedTag && selectedTag !== 'All'
+                  ? ['Tracking ', React.createElement('b', { key: 'tag-hint-b' }, selectedTag)]
+                  : 'All tags'
+              )
+            ),
             React.createElement(
-              'button',
-              {
-                key: `tag-${tag}`,
-                onClick: () => setSelectedTag(tag),
-                className: `filter-tag ${selectedTag === tag ? 'active' : ''}`
-              },
-              tag
+              'div',
+              { className: 'filter-pills filter-pills-wrap' },
+              regularTags.map(tag =>
+                React.createElement(
+                  'button',
+                  {
+                    key: `tag-${tag}`,
+                    onClick: () => setSelectedTag(tag),
+                    className: `filter-pill ${selectedTag === tag ? 'is-active' : ''}`
+                  },
+                  tag === 'All' ? 'All' : '#' + tag
+                )
+              )
             )
           )
         )
