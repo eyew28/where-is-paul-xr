@@ -1,3 +1,80 @@
+window.MomentRevealOverlay = ({ title, snippet, fullLink, onClose, id, image, imageAlt, isComic, carouselDir, overlayRef, onOpenPost }) => {
+  return React.createElement(
+    'div',
+    { className: 'popover-backdrop', onClick: onClose },
+    React.createElement(
+      'div',
+      {
+        className: 'popover popover-reveal',
+        ref: overlayRef,
+        onClick: function(e) { e.stopPropagation(); }
+      },
+      React.createElement(
+        'button',
+        { className: 'close-button', onClick: onClose, type: 'button' },
+        '×'
+      ),
+      React.createElement(
+        'button',
+        {
+          className: 'popover-nav popover-nav--prev',
+          type: 'button',
+          onClick: function(e) { e.stopPropagation(); window.stepOpenCard(-1); }
+        },
+        '‹'
+      ),
+      React.createElement(
+        'button',
+        {
+          className: 'popover-nav popover-nav--next',
+          type: 'button',
+          onClick: function(e) { e.stopPropagation(); window.stepOpenCard(1); }
+        },
+        '›'
+      ),
+      React.createElement(
+        'div',
+        { className: 'popover-viewport' },
+        React.createElement(
+          'div',
+          {
+            key: id,
+            className: 'popover-content' + (carouselDir > 0 ? ' is-in-right' : carouselDir < 0 ? ' is-in-left' : '')
+          },
+          image && React.createElement(
+            'div',
+            { className: 'popover-image-container' },
+            React.createElement('img', {
+              src: image,
+              alt: imageAlt || title,
+              className: 'popover-image-enhanced'
+            })
+          ),
+          React.createElement('h2', { className: 'popover-title-enhanced' }, title),
+          snippet && React.createElement(
+            'div',
+            { className: 'popover-body-enhanced' },
+            React.createElement('p', null, snippet)
+          ),
+          fullLink && fullLink !== '#' && React.createElement(
+            'div',
+            { className: 'popover-footer-enhanced' },
+            React.createElement(
+              'button',
+              {
+                className: 'popover-link',
+                type: 'button',
+                onClick: function() { onOpenPost(id); }
+              },
+              isComic ? 'Read Comic' : 'View Full Post'
+            )
+          )
+        )
+      )
+    )
+  );
+};
+
 window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, setSelectedTag, selectedYear, setSelectedYear, setZoomCallback }) => {
   if (typeof window.momentsInTime === 'undefined') {
     return React.createElement('div', null, 'Error: Data not loaded');
@@ -45,6 +122,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     }
   };
   const [popoverContent, setPopoverContent] = React.useState(null);
+  window.setPopoverContent = setPopoverContent;
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
   
     // Check for characters when drawer opens
@@ -314,55 +392,49 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   }, [popoverContent, setSelectedId, isDrawerOpen, isBlogDrawerOpen]);
 
   React.useEffect(() => {
+    if (!popoverContent) return;
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setPopoverContent(null);
+      setSelectedId(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [popoverContent, setSelectedId]);
+
+  React.useEffect(() => {
     setZoomCallback(() => (post) => {
       if (!globeInstance.current || !post) {
         return;
       }
 
       try {
+        if (window.showMomentCard) {
+          window.showMomentCard(post);
+        }
         if (isZooming.current) {
           return;
         }
         isZooming.current = true;
         globeInstance.current.controls().autoRotate = false;
 
-        // Get current altitude, but use a closer zoom if we're too far out
         const currentPOV = globeInstance.current.pointOfView();
         const currentAltitude = currentPOV.altitude;
-        // Use closer altitude (lower = closer) - target 1.2 for a nice close view
         const targetAltitude = currentAltitude > 1.2 ? 1.2 : currentAltitude;
+        const offsetLat = post.location.lat - 15;
+        const offsetLng = post.location.lng - 3;
 
-        // Offset the view slightly to show location better (not perfectly centered)
-        // Offset latitude down and longitude to the left for better perspective
-        const offsetLat = post.location.lat - 15; // Tilt view down more
-        const offsetLng = post.location.lng - 3; // Shift view to the left
-
-        // Rotate to new location with closer zoom and offset
         globeInstance.current.pointOfView({
           lat: offsetLat,
           lng: offsetLng,
           altitude: targetAltitude
-        }, 1000);
+        }, 600);
 
-        // After the rotation completes
-        waitForZoom(1000).then(() => {
+        waitForZoom(600).then(() => {
           if (globeInstance.current.controls()) {
             globeInstance.current.controls().enableDamping = true;
             globeInstance.current.controls().dampingFactor = 0.2;
-          }
-          
-          // Skip popover for comic episodes - they open directly
-          if (!isComicEpisode(post.id, post.title)) {
-            setPopoverContent({
-              title: post.title || "No Title",
-              snippet: post.snippet || "No Snippet",
-              fullLink: post.fullLink || "#",
-              lat: post.lat,
-              lng: post.lng,
-              id: post.id,
-              image: post.image ? (window.withBase ? window.withBase(post.image.replace('attachment://', '')) : post.image.replace('attachment://', '')) : null,
-              imageAlt: post.imageAlt
-            });
           }
           setSelectedId(post.id);
           isZooming.current = false;
@@ -512,18 +584,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
           }, 1500);
 
           waitForZoom(1500).then(() => {
-            // Skip popover for comic episodes - they open directly
-            if (!isComicEpisode(post.id, post.title)) {
-              setPopoverContent({
-                title: post.title || "No Title",
-                snippet: post.snippet || "No Snippet",
-                fullLink: post.fullLink || "#",
-                lat: post.lat,
-                lng: post.lng,
-                id: post.id,
-                image: post.image ? (window.withBase ? window.withBase(post.image.replace('attachment://', '')) : post.image.replace('attachment://', '')) : null,
-                imageAlt: post.imageAlt
-              });
+            if (window.showMomentCard) {
+              window.showMomentCard(post);
             }
             isZooming.current = false;
           });
@@ -659,15 +721,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   }, [selectedTag, selectedYear, setSelectedId]);
 
   const useTravelLogComicLayout = (post) => {
-    if (!post || !post.location || typeof post.location.lat !== 'number' || typeof post.location.lng !== 'number') {
-      return false;
-    }
-    if (post.isComic || post.isInteractive) return false;
-    if (post.travelLogComicLayout === false) return false;
-    if (post.travelLogComicLayout === true) return true;
-    const title = post.title || '';
-    if (title.includes('Urban Runner')) return false;
-    return true;
+    if (!post || post.isComic || post.isInteractive) return false;
+    return post.travelLogComicLayout === true;
   };
 
   const handleOpenBlogPost = async (postId, options = {}) => {
@@ -719,9 +774,11 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
             mapText: post.mapText,
             isInteractive: false,
             isComic: true,
-            postId: postId
+            postId: postId,
+            skipCover: true
           };
           
+          setPopoverContent(null);
           setBlogPostContent(blogPostContent);
           setIsLoading(false);
           
@@ -909,101 +966,102 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   // Expose handleOpenBlogPost globally after it's defined
   window.handleOpenBlogPost = handleOpenBlogPost;
 
-  const Popover = ({ title, snippet, fullLink, onClose, id, image, imageAlt }) => {
-    return React.createElement(
-      'div',
-      {
-        className: 'popover popover-static',
-        ref: popoverRef
-      },
-      React.createElement(
-        'div',
-        { className: 'popover-content' },
-        image ? (
-          // Enhanced layout for moments with an image
-          React.createElement(
-            'div',
-            { className: 'popover-enhanced' },
-            React.createElement(
-              'button',
-              {
-                className: 'close-button',
-                onClick: onClose
-              },
-              '×'
-            ),
-            React.createElement(
-              'div',
-              { className: 'popover-image-container' },
-              React.createElement('img', {
-                src: image,
-                alt: imageAlt || 'Moment image',
-                className: 'popover-image-enhanced'
-              })
-            ),
-            React.createElement(
-              'h2',
-              { className: 'popover-title-enhanced' },
-              title
-            ),
-            React.createElement(
-              'div',
-              { className: 'popover-body-enhanced' },
-              React.createElement('p', null, snippet)
-            ),
-            fullLink && fullLink !== '#' && React.createElement(
-              'div',
-              { className: 'popover-footer-enhanced' },
-              React.createElement(
-                'button',
-                {
-                  className: 'popover-link',
-                  onClick: () => handleOpenBlogPost(id)
-                },
-                'View Full Post'
-              )
-            )
-          )
-        ) : (
-          // Default layout for moments without an image
-          React.createElement(
-            'div',
-            null,
-            React.createElement(
-              'div',
-              { className: 'popover-header' },
-              React.createElement('h2', { className: 'popover-title' }, title),
-              React.createElement(
-                'button',
-                {
-                  className: 'close-button',
-                  onClick: onClose
-                },
-                '×'
-              )
-            ),
-            React.createElement(
-              'div',
-              { className: 'popover-body' },
-              React.createElement('p', null, snippet)
-            ),
-            fullLink && fullLink !== '#' && React.createElement(
-              'div',
-              { className: 'popover-footer' },
-              React.createElement(
-                'button',
-                {
-                  className: 'popover-link',
-                  onClick: () => handleOpenBlogPost(id)
-                },
-                'View Full Post'
-              )
-            )
-          )
-        )
-      )
-    );
+  const popoverContentRef = React.useRef(null);
+  popoverContentRef.current = popoverContent;
+  const [carouselDir, setCarouselDir] = React.useState(0);
+
+  const resolveMomentImage = (m) => {
+    if (!m) return null;
+    let src = m.isComic
+      ? (m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.png' : ''))
+      : m.image;
+    if (!src) return null;
+    if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
+    if (src.indexOf('https://') === 0 || src.indexOf('http://') === 0) return src;
+    return window.withBase ? window.withBase(src) : src;
   };
+
+  const scrollTimelineToMoment = (id) => {
+    const el = document.querySelector('.tl-entry[data-id="' + id + '"]');
+    const container = document.querySelector('.timeline-scroll');
+    if (!el || !container) return;
+    const er = el.getBoundingClientRect();
+    const cr = container.getBoundingClientRect();
+    container.scrollTo({
+      left: container.scrollLeft + er.left + er.width / 2 - cr.width / 2,
+      behavior: 'smooth'
+    });
+  };
+
+  const showMomentCard = (m) => {
+    if (!m) return;
+    const full = ((window.momentsInTime || []).find(x => x.id === m.id)) || m;
+    setSelectedId(full.id);
+    setPopoverContent({
+      title: full.title || full.timelineHighlight || '',
+      snippet: full.snippet || '',
+      fullLink: full.fullLink || '#',
+      id: full.id,
+      image: resolveMomentImage(full),
+      imageAlt: full.imageAlt || full.title,
+      isComic: !!full.isComic
+    });
+    scrollTimelineToMoment(full.id);
+    let path = full.fullLink;
+    if (!path || path === '#') {
+      path = null;
+    } else if (path.charAt(0) !== '/') {
+      path = '/moments/' + path;
+    }
+    if (path) {
+      const current = window.stripBase ? window.stripBase(window.location.pathname) : window.location.pathname;
+      const a = current.replace(/\/$/, '');
+      const b = path.replace(/\/$/, '');
+      if (a !== b) {
+        window.history.pushState({ momentId: full.id }, '', window.withBase ? window.withBase(path) : path);
+      }
+    }
+  };
+
+  window.showMomentCard = showMomentCard;
+  window.stepOpenCard = (dir, opts) => {
+    const moments = window.momentsInTime || [];
+    if (!moments.length) return null;
+    const currentId = (opts && opts.currentId) || (popoverContentRef.current && popoverContentRef.current.id) || selectedId;
+    let idx = moments.findIndex(m => m.id === currentId);
+    if (idx < 0) return null;
+    const next = moments[idx + dir];
+    if (!next) return null;
+    if (opts && opts.fromComic) {
+      if (next.isComic) return next;
+      setIsBlogDrawerOpen(false);
+      setCarouselDir(dir);
+      showMomentCard(next);
+      return next;
+    }
+    setCarouselDir(dir);
+    showMomentCard(next);
+    return next;
+  };
+
+  React.useEffect(() => {
+    if (!popoverContent) return;
+    const onKeyDown = (event) => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Enter') return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.repeat) return;
+      if (event.key === 'Enter') {
+        const m = (window.momentsInTime || []).find(x => x.id === popoverContent.id);
+        if (m && m.isComic) handleOpenBlogPost(m.id, { skipCover: true });
+        else if (m && m.fullLink && m.fullLink !== '#') handleOpenBlogPost(m.id);
+        return;
+      }
+      window.stepOpenCard(event.key === 'ArrowRight' ? 1 : -1);
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [popoverContent, selectedId]);
 
   const activeFilters = [
     selectedYear && selectedYear !== 'All'
@@ -1247,14 +1305,18 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         )
       )
     ),
-    popoverContent && React.createElement(Popover, {
+    popoverContent && React.createElement(window.MomentRevealOverlay, {
       title: popoverContent.title,
       snippet: popoverContent.snippet,
       fullLink: popoverContent.fullLink,
-      onClose: () => setPopoverContent(null),
+      onClose: () => { setPopoverContent(null); setCarouselDir(0); },
       id: popoverContent.id,
       image: popoverContent.image,
-      imageAlt: popoverContent.imageAlt
+      imageAlt: popoverContent.imageAlt,
+      isComic: popoverContent.isComic,
+      carouselDir: carouselDir,
+      overlayRef: popoverRef,
+      onOpenPost: function(id) { handleOpenBlogPost(id, { skipCover: true }); }
     }),
     isBlogDrawerOpen && blogPostContent && (
       isComicEpisode(blogPostContent.postId || '', blogPostContent.title)
