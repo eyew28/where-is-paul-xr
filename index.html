@@ -18,6 +18,7 @@
         if (ps === pxs || ps.indexOf(pxs) === 0 || p === px) { base = px; break; }
       }
       window.BASE_PATH = base;
+      document.write('<base href="' + (base ? base + '/' : '/') + '">');
       document.write('<link rel="manifest" href="' + (base ? base + "/" : "") + 'manifest.json">');
       document.write('<link rel="icon" type="image/png" sizes="192x192" href="' + (base ? base + "/" : "") + 'icons/icon-3-192x192.png">');
       document.write('<link rel="apple-touch-icon" sizes="152x152" href="' + (base ? base + "/" : "") + 'icons/icon-3-192x192.png">');
@@ -32,24 +33,25 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Where is Paul?">
 
-  <script src="lib/basePath.js?v=20260818c"></script>
+  <script defer src="lib/basePath.js?v=20260818c"></script>
   <!-- Local Libraries -->
-  <script src="lib/tailwind.min.js" crossorigin="anonymous"></script>
-  <script src="lib/react.production.min.js" crossorigin="anonymous"></script>
-  <script src="lib/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script src="lib/babel.min.js" crossorigin="anonymous"></script>
-  <script src="lib/three.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Three.js')"></script>
-  <script src="lib/d3.min.js" crossorigin="anonymous" onerror="console.error('Failed to load D3')"></script>
-  <script src="lib/globe.gl.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Globe.GL')"></script>
+  <script defer src="lib/tailwind.min.js" crossorigin="anonymous"></script>
+  <script defer src="lib/react.production.min.js" crossorigin="anonymous"></script>
+  <script defer src="lib/react-dom.production.min.js" crossorigin="anonymous"></script>
+  <script defer src="lib/babel.min.js" crossorigin="anonymous"></script>
+  <script defer src="lib/three.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Three.js')"></script>
+  <script defer src="lib/d3.min.js" crossorigin="anonymous" onerror="console.error('Failed to load D3')"></script>
+  <script defer src="lib/globe.gl.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Globe.GL')"></script>
   <!-- Local Styles -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev" crossorigin>
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="preload" href="fonts/fraunces-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="lib/swiper-bundle.min.css">
   <link rel="stylesheet" href="lib/leaflet.css">
   <link rel="stylesheet" href="components/styles.css">
   <link rel="stylesheet" href="components/blogPostDrawer.css?v=20260827d">
-  <link rel="stylesheet" href="components/footer.css?v=20260827g">
+  <link rel="stylesheet" href="components/footer.css?v=20260827h">
   <link rel="stylesheet" href="components/globe.css?v=20260827s">
 
   <!-- Service Worker Registration -->
@@ -132,14 +134,14 @@
   </script>
 
   <!-- Data (Load First) -->
-  <script type="text/babel" defer src="moments/moments.js?v=20260827a"></script>
+  <script type="text/babel" defer src="moments/moments.js?v=20260827b"></script>
   <script type="text/babel" defer src="characters/characters.js?v=20251116120100"></script>
   <!-- jQuery for Turn.js -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="lib/turn.min.js"></script>
+  <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script defer src="lib/turn.min.js"></script>
   <!-- Swiper for comic cover carousel and immersive comic vertical slides -->
-  <script src="lib/swiper-bundle.min.js"></script>
-  <script src="lib/leaflet.js"></script>
+  <script defer src="lib/swiper-bundle.min.js"></script>
+  <script defer src="lib/leaflet.js"></script>
 
   <!-- Local Scripts -->
   <script type="text/babel" defer src="components/globe.js?v=20260827j"></script>
@@ -155,7 +157,7 @@
   <script type="text/babel" defer src="components/comicReader/characterSlideViewer.js"></script>
   <script type="text/babel" defer src="components/comicReader/render.js?v=20260818a"></script>
   <script type="text/babel" defer src="components/comicReader.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/footer.js?v=20260827i"></script>
+  <script type="text/babel" defer src="components/footer.js?v=20260827j"></script>
   <script type="text/babel" defer src="components/app.js?v=20260818a"></script>
   <script defer src="components/episodeNavigation.js?v=20260818a"></script>
 
