@@ -1,6 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": false,
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/moments/:city/:date/", "destination": "/moments/:city/:date", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/moments/:city/:date/content", "destination": "/moments/:city/:date/content.html" },
     { "source": "/components/interactive-episode", "destination": "/components/interactive-episode.html" }
@@ -9,7 +13,7 @@
     {
       "source": "/(.*\\.(?:css|js))",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {
