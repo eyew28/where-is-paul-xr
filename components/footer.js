@@ -509,9 +509,13 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
                   const fullDateRange = formatFullDateRange(moment.date, moment.stayDuration);
                   const isComic = moment.isComic && moment.fullLink !== '#';
                   const isPost = !moment.isComic && moment.fullLink !== '#';
-                  const imgSrc = isComic
+                  const coverThumb = isComic
+                    ? resolveImg((moment.cover || moment.fullLink.replace(/\/$/, '') + '/cover.png').replace(/cover\.png$/, 'cover-thumb.webp'))
+                    : null;
+                  const coverFull = isComic
                     ? resolveImg(moment.cover || (moment.fullLink.replace(/\/$/, '') + '/cover.png'))
-                    : resolveImg(moment.image);
+                    : null;
+                  const imgSrc = coverThumb || resolveImg(moment.image);
 
                   return React.createElement(
                     'article',
@@ -539,9 +543,13 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
                             decoding: 'async',
                             loading: 'lazy',
                             onError: function(e) {
-                              var media = e.target.parentElement;
-                              if (media) media.classList.add('tl-entry__media-fallback');
-                              e.target.style.display = 'none';
+                              if (coverThumb && e.target.src === coverThumb && coverFull) {
+                                e.target.src = coverFull;
+                              } else {
+                                var media = e.target.parentElement;
+                                if (media) media.classList.add('tl-entry__media-fallback');
+                                e.target.style.display = 'none';
+                              }
                             }
                           })
                         : React.createElement('div', { className: 'tl-entry__placeholder' }, '✦'),
