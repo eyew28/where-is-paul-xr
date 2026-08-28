@@ -173,6 +173,14 @@
 </body>
   <!-- Link to Latest -->
   <div style="position: fixed; bottom: 12px; right: 12px; font-size: 11px; color: #666; z-index: 20; text-align: right;">
-    <div><a href="latest/" style="color: #06b6d4; text-decoration: none; font-weight: bold;">Latest ↻</a></div>
+    <div><a href="javascript:void(0)" id="latest-link" style="color: #06b6d4; text-decoration: none; font-weight: bold;">Latest ↻</a></div>
   </div>
+  <script>
+    document.getElementById('latest-link').addEventListener('click', function() {
+      var moments = window.momentsInTime;
+      if (moments && moments.length && window.handleTimelineClick) {
+        window.handleTimelineClick(moments[moments.length - 1]);
+      }
+    });
+  </script>
 </html>
