@@ -750,7 +750,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       })
         .globeImageUrl('//unpkg.com/three-globe/example/img/earth-night.jpg')
         .backgroundImageUrl('//unpkg.com/three-globe/example/img/night-sky.png')
-        .pointOfView({ lat: 0, lng: 0, altitude: 2.5 }, 0)
+        .pointOfView({ lat: 0, lng: 0, altitude: 2.0 }, 0)
         .hexBinPointsData([])
         .hexBinPointLat('lat')
         .hexBinPointLng('lng')
