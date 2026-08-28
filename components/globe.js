@@ -143,6 +143,10 @@ window.createGlobePhotoPin = (d) => {
   el.dataset.id = d.id || '';
   el.dataset.ids = (d.ids || []).join(',');
   el.setAttribute('aria-label', d.title || 'Moment');
+  // Wrapper holds translate(-50%,-50%) + counter-scale; badge sits as a
+  // sibling of the clipped inner so it lands on the rim, not cut off.
+  const face = document.createElement('span');
+  face.className = 'globe-photo-pin-face';
   const inner = document.createElement('span');
   inner.className = 'globe-photo-pin-inner';
   const img = document.createElement('img');
@@ -150,13 +154,14 @@ window.createGlobePhotoPin = (d) => {
   img.alt = '';
   img.draggable = false;
   inner.appendChild(img);
+  face.appendChild(inner);
   if (d.count > 1) {
     const badge = document.createElement('span');
     badge.className = 'globe-photo-pin-count';
     badge.textContent = String(d.count);
-    inner.appendChild(badge);
+    face.appendChild(badge);
   }
-  el.appendChild(inner);
+  el.appendChild(face);
   el.addEventListener('pointerdown', function(e) { e.stopPropagation(); });
   el.addEventListener('mouseenter', function(e) {
     if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return;
@@ -366,6 +371,9 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   const doubleTapTimeout = React.useRef(null);
   const pinchStartDistance = React.useRef(null);
   const pinchStartAltitude = React.useRef(null);
+  const footerTapStartX = React.useRef(null);
+  const footerTapStartY = React.useRef(null);
+  const footerTapStartT = React.useRef(null);
   const selectedIdRef = React.useRef(selectedId);
   selectedIdRef.current = selectedId;
   const highlightedPointIdsRef = React.useRef(new Set());
@@ -481,8 +489,14 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     };
 
     const handleTouchStart = (event) => {
-      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet')) {
+      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet') || event.target.closest('.wip-footer')) {
         return;
+      }
+      const expandedFooter = document.querySelector('.wip-footer.is-expanded');
+      if (expandedFooter && event.touches.length === 1 && !hexClusterRef.current) {
+        footerTapStartX.current = event.touches[0].clientX;
+        footerTapStartY.current = event.touches[0].clientY;
+        footerTapStartT.current = Date.now();
       }
       if (event.touches.length === 1) {
         touchStartX.current = event.touches[0].clientX;
@@ -541,7 +555,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     };
 
     const handleTouchMove = (event) => {
-      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet')) {
+      if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet') || event.target.closest('.wip-footer')) {
         return;
       }
       if (event.touches.length === 1 && popoverContent && touchStartX.current !== null && touchStartY.current !== null) {
@@ -592,7 +606,30 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (event) => {
+      if (footerTapStartX.current !== null && footerTapStartY.current !== null && footerTapStartT.current !== null) {
+        const dt = Date.now() - footerTapStartT.current;
+        const touch = event.changedTouches && event.changedTouches[0];
+        let dx = 0, dy = 0;
+        if (touch) {
+          dx = touch.clientX - footerTapStartX.current;
+          dy = touch.clientY - footerTapStartY.current;
+        }
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dt < 300 && dist < 10) {
+          const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : null;
+          const isChrome = target && (target.closest('.hex-cluster-backdrop') || target.closest('.hex-cluster-sheet') || target.closest('.filter-drawer') || target.closest('.overlay') || target.closest('.popover'));
+          if (!isChrome) {
+            const expandedFooter = document.querySelector('.wip-footer.is-expanded');
+            if (expandedFooter) {
+              expandedFooter.classList.remove('is-expanded');
+            }
+          }
+        }
+        footerTapStartX.current = null;
+        footerTapStartY.current = null;
+        footerTapStartT.current = null;
+      }
       touchStartX.current = null;
       touchStartY.current = null;
       pinchStartDistance.current = null;
@@ -741,6 +778,21 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
 
     const canRotate = altitude > 2.0 && !selectedIdRef.current && !hexClusterRef.current;
     globeInstance.current.controls().autoRotate = canRotate;
+
+    // Counter-scale DOM pins on touch UI so the camera-distance scaling
+    // applied by three-globe does not shrink taps below ~56px screen space.
+    // The globe's perspective scales pins ~1/altitude; we invert that,
+    // clamped to 1.0–1.8 so zoomed-in pins don't balloon. Desktop pins are
+    // 44px and not counter-scaled (hover gallery is desktop-only).
+    const viz = document.getElementById('globeViz');
+    if (viz && document.documentElement.classList.contains('touch-ui')) {
+      const rawScale = altitude / 2.5;
+      const scale = Math.max(1.0, Math.min(1.8, rawScale));
+      const pins = viz.querySelectorAll('.globe-photo-pin-face');
+      pins.forEach(function (face) {
+        face.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+      });
+    }
   };
 
   React.useEffect(() => {

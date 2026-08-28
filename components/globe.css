@@ -17,6 +17,9 @@
   --shadow-panel: 0 18px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
   --shadow-float: 0 6px 22px rgba(0, 0, 0, 0.45);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* — new: touch chrome geometry (consumed by T7) — */
+  --touch-pin: 56px;
 }
 
 .close-button {
@@ -912,12 +915,18 @@
   -webkit-appearance: none;
 }
 
+.globe-photo-pin-face {
+  display: block;
+  position: relative;
+  transform: translate(-50%, -50%);
+  /* counter-scale on touch is applied to this element by onZoomHandler. */
+}
+
 .globe-photo-pin-inner {
   display: block;
   position: relative;
   width: 44px;
   height: 44px;
-  transform: translate(-50%, -50%);
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--primary-orange);
@@ -933,20 +942,25 @@
   pointer-events: none;
 }
 
+/* Count badge sits on the rim of the circle. It is a sibling of the clipped
+   inner (inside .globe-photo-pin-face) so it is never cut off, and it shares
+   the face's translate(-50%,-50%) origin so it tracks the pin on zoom. */
 .globe-photo-pin-count {
   position: absolute;
-  right: -2px;
+  right: -4px;
   bottom: -2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
   background: var(--primary-orange);
-  color: #111;
-  font-size: 10px;
+  color: #0a0a0c;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 20px;
   text-align: center;
+  box-shadow: 0 0 0 2px #0a0a0c, 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 2;
 }
 
 .globe-photo-pin.is-selected .globe-photo-pin-inner {
@@ -958,8 +972,8 @@
   position: fixed;
   z-index: 10018;
   transform: translate(0, -50%);
-  max-width: min(440px, calc(100vw - 24px));
-  padding: 8px 8px 10px;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 10px 10px 12px;
   border-radius: 14px;
   background: var(--panel);
   border: 1px solid var(--hairline-strong);
@@ -980,7 +994,7 @@
 
 .globe-pin-gallery-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -991,11 +1005,11 @@
 
 .globe-pin-gallery-item {
   flex: 0 0 auto;
-  width: 72px;
-  height: 72px;
+  width: 116px;
+  height: 116px;
   padding: 0;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   background: #0a0a0c;
   cursor: pointer;
@@ -1150,3 +1164,30 @@
     height: 64px;
   }
 }
+
+/* Touch UI pin sizing — 56px tap target (token: --touch-pin, 56px).
+   This rule (specificity 0,2,0) overrides the @media(max-width:640px)
+   .globe-photo-pin-inner rule (specificity 0,1,0) above. Desktop 44px
+   (line 918) is unchanged because .touch-ui is only set when the primary
+   pointer is coarse (see index.html). */
+.touch-ui .globe-photo-pin {
+  /* The button's hit box equals the inner's layout size; the inner is
+     56x56 so the button is a 56x56 tap target at default camera. The
+     translate(-50%,-50%) on the inner only shifts rendering, it does
+     not shrink the button's clickable layout box. */
+  min-width: var(--touch-pin);
+  min-height: var(--touch-pin);
+  padding: 0;
+  margin: 0;
+}
+
+.touch-ui .globe-photo-pin-inner {
+  width: var(--touch-pin);
+  height: var(--touch-pin);
+  border-radius: 50%;
+  /* Keep the orange circular border from the desktop rule (line 924-928). */
+}
+
+/* The badge is no longer a child of the clipped inner (it lives in
+   .globe-photo-pin-face), so the -4px/-2px desktop offset already clears
+   the 56px circle rim on touch too. No override needed. */
