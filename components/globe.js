@@ -1280,9 +1280,14 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
 
   const resolveMomentImage = (m) => {
     if (!m) return null;
-    let src = m.isComic
-      ? ((m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : '')).replace(/cover\.webp$/, 'cover-thumb.webp'))
-      : m.image;
+    let src;
+    if (m.isComic) {
+      src = m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : '');
+    } else {
+      src = (m.image || '')
+        .replace(/image-thumb\.webp$/, 'image.jpg')
+        .replace(/\/moments\/images\/([^/]+)\.webp$/, '/moments/images/$1.jpg');
+    }
     if (!src) return null;
     if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
     if (src.indexOf('https://') === 0 || src.indexOf('http://') === 0) return src;
