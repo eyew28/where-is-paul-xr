@@ -7,6 +7,7 @@
 // - components/comicReader/navigation.js (device-specific navigation)
 // - components/comicReader/render.js (device-specific render functions)
 
+(function () {
 // Get utilities from loaded modules
 const { updateGlobalState, getGlobalState, getPages: coreGetPages, getNextEpisode: coreGetNextEpisode, getPreviousEpisode: coreGetPreviousEpisode, findCurrentEpisode, parseSlideFromHash, updateUrlForSlide } = window.ComicReaderCore || {};
 const { createFlipbook: createFlipbookUtil, updatePages: updatePagesUtil } = window.ComicReaderFlipbook || {};
@@ -1685,4 +1686,5 @@ if (!document.querySelector('#comic-episode-styles')) {
   `;
   document.head.appendChild(style);
 }
+})();
 
