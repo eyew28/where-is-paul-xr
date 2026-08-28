@@ -432,9 +432,21 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
         return;
       }
       swipeResolved = true;
+      if (event.cancelable) event.preventDefault();
       const isExpanded = footer.classList.contains('is-expanded');
       if (dy < 0 && !isExpanded) footer.classList.add('is-expanded');
       else if (dy > 0 && isExpanded) footer.classList.remove('is-expanded');
+    };
+
+    const onMinimapTouchMove = (event) => {
+      if (swipePointerId === null) return;
+      const touch = event.touches && event.touches[0];
+      if (!touch) return;
+      const dy = touch.clientY - swipeStartY;
+      const dx = touch.clientX - swipeStartX;
+      if (Math.abs(dy) > Math.abs(dx) && event.cancelable) {
+        event.preventDefault();
+      }
     };
 
     const onMinimapPointerUp = (event) => {
@@ -451,6 +463,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     minimap.addEventListener('pointermove', onMinimapPointerMove, true);
     minimap.addEventListener('pointerup', onMinimapPointerUp, true);
     minimap.addEventListener('pointercancel', onMinimapPointerUp, true);
+    minimap.addEventListener('touchmove', onMinimapTouchMove, { capture: true, passive: false });
 
     bandWrap.addEventListener('pointerdown', onBandPointerDown);
     bandWrap.addEventListener('pointermove', onBandPointerMove);
@@ -462,6 +475,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
       minimap.removeEventListener('pointermove', onMinimapPointerMove, true);
       minimap.removeEventListener('pointerup', onMinimapPointerUp, true);
       minimap.removeEventListener('pointercancel', onMinimapPointerUp, true);
+      minimap.removeEventListener('touchmove', onMinimapTouchMove, true);
       bandWrap.removeEventListener('pointerdown', onBandPointerDown);
       bandWrap.removeEventListener('pointermove', onBandPointerMove);
       bandWrap.removeEventListener('pointerup', onBandPointerUp);

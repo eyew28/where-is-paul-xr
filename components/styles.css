@@ -18,6 +18,14 @@ body {
   overflow-x: hidden;
 }
 
+html.touch-ui,
+html.touch-ui body {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overflow: hidden;
+  height: 100%;
+}
+
 /* Sci-Fi Memory System Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
