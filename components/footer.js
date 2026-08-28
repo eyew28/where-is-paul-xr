@@ -161,6 +161,16 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
   React.useEffect(() => {
     const container = document.querySelector('.timeline-scroll');
     if (!container) return;
+    const scrollToLatest = () => {
+      container.scrollTo({ left: container.scrollWidth, behavior: 'smooth' });
+    };
+    const t = setTimeout(scrollToLatest, 300);
+    return () => clearTimeout(t);
+  }, []);
+
+  React.useEffect(() => {
+    const container = document.querySelector('.timeline-scroll');
+    if (!container) return;
     let raf = null;
     const updateFocusScales = () => {
       const crect = container.getBoundingClientRect();
