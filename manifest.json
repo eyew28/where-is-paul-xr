@@ -26,7 +26,7 @@
   "shortcuts": [
     {
       "name": "Latest Posts",
-      "url": "/",
+      "url": "./",
       "icons": [{ "src": "icons/icon-3-192x192.png", "sizes": "192x192" }]
     }
   ],
