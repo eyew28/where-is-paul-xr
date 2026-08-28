@@ -10,34 +10,12 @@
     const { image, video, alt, name, role, bio, description } = page;
     const narrative = bio || description || '';
 
-    const narrativeContent = React.createElement('div', {
-      style: {
-        width: '100%',
-        height: '100%',
-        padding: '24px 16px',
-        boxSizing: 'border-box',
-        background: '#1a1a1a',
-        color: '#e8e8e8',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        textAlign: 'left',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start'
-      }
-    }, [
-      name && React.createElement('h2', {
-        key: 'name',
-        style: { margin: '0 0 8px', fontSize: '1.5rem', fontWeight: 600 }
-      }, name),
-      role && React.createElement('p', {
-        key: 'role',
-        style: { margin: '0 0 16px', fontSize: '0.9rem', opacity: 0.85 }
-      }, role),
-      narrative && React.createElement('p', {
-        key: 'bio',
-        style: { margin: 0, fontSize: '1rem', lineHeight: 1.6 }
-      }, narrative)
+    const lede = description && description !== narrative ? description : null;
+    const narrativeContent = React.createElement('div', { className: 'character-story' }, [
+      role && React.createElement('p', { key: 'role', className: 'character-story__role' }, role),
+      name && React.createElement('h2', { key: 'name', className: 'character-story__name' }, name),
+      lede && React.createElement('p', { key: 'lede', className: 'character-story__lede' }, lede),
+      narrative && React.createElement('p', { key: 'bio', className: 'character-story__bio' }, narrative)
     ]);
 
     const pages = [];

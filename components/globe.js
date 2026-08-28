@@ -1661,8 +1661,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
                   React.createElement('path', { d: 'M4 21c0-4 4-6 8-6s8 2 8 6' })
                 )
               ),
-              React.createElement('span', { className: 'filter-section-label' }, 'Characters'),
-              React.createElement('span', { className: 'filter-section-hint' }, 'Tap to find out more about that person')
+              React.createElement('span', { className: 'filter-section-label' }, 'People'),
+              React.createElement('span', { className: 'filter-section-hint' }, 'The tribe')
             ),
             React.createElement(
               'div',
@@ -1703,10 +1703,15 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
                 'button',
                 {
                   className: 'character-comic-button',
-                  onClick: handleOpenCharacterComic,
-                  title: 'Open Character Bible Comic Book'
+                  onClick: () => handleOpenCharacterComic(),
+                  title: 'Open the Character Bible'
                 },
-                '📚'
+                React.createElement('img', {
+                  src: 'https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/cover-thumb.webp',
+                  alt: '',
+                  className: 'character-comic-button__cover'
+                }),
+                React.createElement('span', { className: 'character-comic-button__label' }, 'Bible')
               )
             )
           ),
