@@ -85,7 +85,7 @@ window.formatClusterDate = (dateStr) => {
 window.resolveGlobeImage = (m) => {
   if (!m) return null;
   let src = m.isComic
-    ? (m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : ''))
+    ? ((m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : '')).replace(/cover\.webp$/, 'cover-thumb.webp'))
     : m.image;
   if (!src) return null;
   if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
@@ -1281,7 +1281,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   const resolveMomentImage = (m) => {
     if (!m) return null;
     let src = m.isComic
-      ? (m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : ''))
+      ? ((m.cover || ((m.fullLink && m.fullLink !== '#') ? m.fullLink.replace(/\/$/, '') + '/cover.webp' : '')).replace(/cover\.webp$/, 'cover-thumb.webp'))
       : m.image;
     if (!src) return null;
     if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
