@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <meta name="description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
   <meta property="og:title" content="Where is Paul?">
   <meta property="og:description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
@@ -14,6 +14,15 @@
   <meta name="twitter:description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
   <meta name="twitter:image" content="https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/where-is-paul.jpg">
   <title>Where is Paul?</title>
+  <script>
+    (function () {
+      var coarseMQ = window.matchMedia('(pointer: coarse)');
+      document.documentElement.classList.toggle('touch-ui', coarseMQ.matches);
+      coarseMQ.addEventListener('change', function (e) {
+        document.documentElement.classList.toggle('touch-ui', e.matches);
+      });
+    })();
+  </script>
   <script>
     (function () {
       var KNOWN_PREFIXES = ["/apps/where-is-paul"];
@@ -56,10 +65,10 @@
   <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="lib/swiper-bundle.min.css">
   <link rel="stylesheet" href="lib/leaflet.css">
-  <link rel="stylesheet" href="components/styles.css">
+  <link rel="stylesheet" href="components/styles.css?v=20260828b">
   <link rel="stylesheet" href="components/blogPostDrawer.css?v=20260828a">
-  <link rel="stylesheet" href="components/footer.css?v=20260828a">
-  <link rel="stylesheet" href="components/globe.css?v=20260828a">
+  <link rel="stylesheet" href="components/footer.css?v=20260828c">
+  <link rel="stylesheet" href="components/globe.css?v=20260828c">
 
   <!-- Service Worker Registration -->
   <script>
@@ -151,7 +160,7 @@
   <script defer src="lib/leaflet.js"></script>
 
   <!-- Local Scripts -->
-  <script defer src="components/globe.js?v=20260828a"></script>
+  <script defer src="components/globe.js?v=20260828c"></script>
   <script defer src="components/blogPostDrawer.js?v=20260828a"></script>
   <script defer src="components/interactiveEpisodeDrawer.js"></script>
   <!-- Comic Reader Components (load in order) -->
@@ -164,8 +173,8 @@
   <script defer src="components/comicReader/characterSlideViewer.js"></script>
   <script defer src="components/comicReader/render.js?v=20260828a"></script>
   <script defer src="components/comicReader.js?v=20260828a"></script>
-  <script defer src="components/footer.js?v=20260828a"></script>
-  <script defer src="components/app.js?v=20260828a"></script>
+  <script defer src="components/footer.js?v=20260828b"></script>
+  <script defer src="components/app.js?v=20260828b"></script>
   <script defer src="components/episodeNavigation.js?v=20260828a"></script>
 
   <script>
