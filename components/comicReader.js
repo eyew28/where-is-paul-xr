@@ -634,10 +634,12 @@ window.ComicReader = ({ content, onClose }) => {
     }
     if (isCharacterComicBook) {
       const pages = episodeData?.pages && Array.isArray(episodeData.pages) ? episodeData.pages : [];
+      const fromHash = parseSlideFromHash ? parseSlideFromHash(episodeData) : null;
+      const startPage = (fromHash >= 1) ? Math.min(fromHash, pages.length || 1) : 1;
       setShowCover(false);
       setTotalPages(pages.length);
-      setCurrentPage(1);
-      currentPageRef.current = 1;
+      setCurrentPage(startPage);
+      currentPageRef.current = startPage;
       setIsLoading(false);
       setFlipbookReady(true);
       return;
@@ -829,6 +831,27 @@ window.ComicReader = ({ content, onClose }) => {
     }
   };
 
+  const exitComicToTimeline = (dir) => {
+    const resolvedId = episodeData && episodeData.id === 'characters-comic-book'
+      ? 'characters-comic-book-2025-09-15'
+      : (episodeData && episodeData.id);
+    updateGlobalState({
+      flipbookCreated: false,
+      episodeData: null,
+      currentPage: 1,
+      totalPages: 0,
+      flipbookReady: false,
+      isVisible: false,
+      isLoading: true
+    });
+    const overlay = document.getElementById('overlay');
+    if (overlay) overlay.classList.remove('hidden');
+    onClose();
+    if (window.stepOpenCard) {
+      window.stepOpenCard(dir, { currentId: resolvedId, fromComic: true });
+    }
+  };
+
   const nextPage = () => {
     try {
       const currentPageValue = currentPageRef.current;
@@ -842,7 +865,7 @@ window.ComicReader = ({ content, onClose }) => {
           currentPageRef.current = nextPageNum;
           updateGlobalState({ currentPage: nextPageNum });
         } else {
-          loadNextEpisode();
+          exitComicToTimeline(1);
         }
         return;
       }
@@ -859,7 +882,7 @@ window.ComicReader = ({ content, onClose }) => {
           currentPageRef.current = nextPageNum;
           updateGlobalState({ currentPage: nextPageNum });
         } else {
-          loadNextEpisode();
+          exitComicToTimeline(1);
         }
         return;
       }
@@ -876,7 +899,7 @@ window.ComicReader = ({ content, onClose }) => {
           updateGlobalState({ currentPage: nextPageNum });
           updateSpreadPages(nextPageNum);
         } else {
-          loadNextEpisode();
+          exitComicToTimeline(1);
         }
         return;
       }
@@ -888,7 +911,7 @@ window.ComicReader = ({ content, onClose }) => {
         updateGlobalState({ currentPage: nextPageNum });
         updateSpreadPages(nextPageNum);
       } else {
-        loadNextEpisode();
+        exitComicToTimeline(1);
       }
     } catch (error) {
       // Silent error handling
