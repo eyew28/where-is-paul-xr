@@ -510,10 +510,10 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
                   const isComic = moment.isComic && moment.fullLink !== '#';
                   const isPost = !moment.isComic && moment.fullLink !== '#';
                   const coverThumb = isComic
-                    ? resolveImg((moment.cover || moment.fullLink.replace(/\/$/, '') + '/cover.png').replace(/cover\.png$/, 'cover-thumb.webp'))
+                    ? resolveImg((moment.cover || moment.fullLink.replace(/\/$/, '') + '/cover.webp').replace(/cover\.webp$/, 'cover-thumb.webp'))
                     : null;
                   const coverFull = isComic
-                    ? resolveImg(moment.cover || (moment.fullLink.replace(/\/$/, '') + '/cover.png'))
+                    ? resolveImg(moment.cover || (moment.fullLink.replace(/\/$/, '') + '/cover.webp'))
                     : null;
                   const imgSrc = coverThumb || resolveImg(moment.image);
 

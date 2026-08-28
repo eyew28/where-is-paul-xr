@@ -59,7 +59,7 @@ const renderCover = (deviceType, styles, {
   isWideCover = false
 }) => {
   const isMobile = deviceType === 'mobile';
-  const coverSrc = resolveImageUrl(episodeData?.cover || episodeData?.image) || (episodeData?.fullLink ? (window.withBase ? window.withBase(`${episodeData.fullLink.replace(/\/$/, '')}/cover.png`) : `${episodeData.fullLink.replace(/\/$/, '')}/cover.png`) : null);
+  const coverSrc = resolveImageUrl(episodeData?.cover || episodeData?.image) || (episodeData?.fullLink ? (window.withBase ? window.withBase(`${episodeData.fullLink.replace(/\/$/, '')}/cover.webp`) : `${episodeData.fullLink.replace(/\/$/, '')}/cover.webp`) : null);
   
   const coverClassName = 'comic-cover-display' + (isWideCover ? ' comic-cover-display--wide' : '');
   return React.createElement('div', {
