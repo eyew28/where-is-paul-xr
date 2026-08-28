@@ -179,19 +179,6 @@
     });
   </script>
 </body>
-  <!-- Link to Latest -->
-  <div style="position: fixed; bottom: 12px; right: 12px; font-size: 11px; color: #666; z-index: 20; text-align: right;">
-    <div><a href="javascript:void(0)" id="latest-link" style="color: #06b6d4; text-decoration: none; font-weight: bold;">Latest ↻</a></div>
-  </div>
-  <script>
-    document.getElementById('latest-link').addEventListener('click', function() {
-      try { localStorage.setItem('wip-seen', '1'); } catch (e) {}
-      var moments = window.momentsInTime;
-      if (moments && moments.length && window.handleTimelineClick) {
-        window.handleTimelineClick(moments[moments.length - 1]);
-      }
-    });
-  </script>
   <div id="wip-hint" style="display:none; position:fixed; bottom:148px; left:50%; transform:translateX(-50%); z-index:15; background:rgba(26,26,26,0.9); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px 32px 8px 14px; font-size:13px; color:#ccc; white-space:nowrap; pointer-events:auto; box-shadow:0 2px 12px rgba(0,0,0,0.4); transition:opacity 0.3s ease, visibility 0.3s ease;">
     A life on a globe. Started so family could find me.
     <span id="wip-hint-close" style="position:absolute; top:4px; right:8px; cursor:pointer; color:#888; font-size:14px; line-height:1;">&times;</span>
