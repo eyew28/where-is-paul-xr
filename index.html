@@ -3,8 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="description" content="Explore my personal blog with coding tips, volleyball updates, travel adventures, coffee shops, nutrition, philosophical thoughts, and more, featuring an interactive 3D globe powered by Globe.GL! 🌍">
-  <meta name="keywords" content="personal blog, coding tips, volleyball, travel, coffee shops, nutrition, philosophy, 3D interactive globe, Globe.GL, Austin, Destin, Tokyo">
+  <meta name="description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
+  <meta property="og:title" content="Where is Paul?">
+  <meta property="og:description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
+  <meta property="og:url" content="https://paulvisciano.com/apps/where-is-paul/">
+  <meta property="og:image" content="https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/where-is-paul.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Where is Paul?">
+  <meta name="twitter:description" content="A life on a globe. Built so family and friends could see where I was. Now the way I tell the story — stays, comics, people. Same URL on a phone or a desk.">
+  <meta name="twitter:image" content="https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/where-is-paul.jpg">
   <title>Where is Paul?</title>
   <script>
     (function () {
@@ -183,5 +191,67 @@
         window.handleTimelineClick(moments[moments.length - 1]);
       }
     });
+  </script>
+  <div id="wip-hint" style="display:none; position:fixed; bottom:148px; left:50%; transform:translateX(-50%); z-index:15; background:rgba(26,26,26,0.9); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px 32px 8px 14px; font-size:13px; color:#ccc; white-space:nowrap; pointer-events:auto; box-shadow:0 2px 12px rgba(0,0,0,0.4); transition:opacity 0.3s ease, visibility 0.3s ease;">
+    A life on a globe. Started so family could find me.
+    <span id="wip-hint-close" style="position:absolute; top:4px; right:8px; cursor:pointer; color:#888; font-size:14px; line-height:1;">&times;</span>
+  </div>
+  <script>
+    (function () {
+      var hint = document.getElementById('wip-hint');
+      var closeBtn = document.getElementById('wip-hint-close');
+      var STORAGE_KEY = 'wip-hint-dismissed';
+
+      function shouldShowHint() {
+        try {
+          if (localStorage.getItem(STORAGE_KEY) === '1') return false;
+          if (localStorage.getItem('wip-seen') === '1') return false;
+          return true;
+        } catch (e) { return false; }
+      }
+
+      function dismissHint() {
+        if (!hint || hint.style.display === 'none') return;
+        hint.style.opacity = '0';
+        hint.style.visibility = 'hidden';
+        setTimeout(function() { hint.style.display = 'none'; }, 300);
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (e) {}
+        cleanup();
+      }
+
+      var cleaned = false;
+      function cleanup() {
+        if (cleaned) return;
+        cleaned = true;
+        if (closeBtn) closeBtn.removeEventListener('click', dismissHint);
+        var ts = document.querySelector('.timeline-track');
+        if (ts) ts.removeEventListener('click', dismissHint);
+        if (window.globeInstance && window.globeInstance.controls) {
+          try { window.globeInstance.controls().removeEventListener('start', dismissHint); } catch (e) {}
+        }
+      }
+
+      function showHintIfReady() {
+        if (!shouldShowHint()) return;
+        if (!window.globeInstance) {
+          setTimeout(showHintIfReady, 200);
+          return;
+        }
+        var params = new URLSearchParams(window.location.search);
+        var hash = window.location.hash;
+        var forceLatest = params.get('latest') === '1' || hash === '#latest';
+        var forceGlobe = params.get('globe') === '1' || hash === '#globe';
+        if (forceLatest || forceGlobe) return;
+        hint.style.display = 'block';
+        if (closeBtn) closeBtn.addEventListener('click', dismissHint);
+        var ts = document.querySelector('.timeline-track');
+        if (ts) ts.addEventListener('click', dismissHint);
+        try {
+          window.globeInstance.controls().addEventListener('start', dismissHint);
+        } catch (e) {}
+      }
+
+      document.addEventListener('DOMContentLoaded', showHintIfReady);
+    })();
   </script>
 </html>
