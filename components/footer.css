@@ -129,6 +129,12 @@ html.touch-ui .wip-footer:focus-within {
 }
 html.touch-ui .wip-footer.is-expanded {
   transform: translateY(0);
+  max-height: 100svh;
+  overflow: hidden;
+}
+html.touch-ui .wip-footer.is-expanded .timeline-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Landscape on coarse-pointer devices: cap the peek so the globe keeps
@@ -164,6 +170,10 @@ html.touch-ui .era-minimap {
   padding: 6px 8px;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   gap: 4px;
+  touch-action: none;
+}
+html.touch-ui .wip-footer.is-expanded .era-minimap {
+  padding-top: 12px;
 }
 html.touch-ui .era-minimap:hover,
 html.touch-ui .era-minimap:focus-within {
@@ -185,14 +195,17 @@ html.touch-ui .era-minimap:focus-within .era-band {
 }
 
 html.touch-ui .era-ticks {
-  height: 18px;
+  height: 28px;
+  overflow: visible;
   opacity: 1;
   pointer-events: auto;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
+  line-height: 1;
 }
 html.touch-ui .era-minimap:hover .era-ticks,
 html.touch-ui .era-minimap:focus-within .era-ticks {
-  height: 18px;
+  height: 28px;
+  overflow: visible;
   opacity: 1;
   pointer-events: auto;
 }
