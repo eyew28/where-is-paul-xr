@@ -213,48 +213,6 @@ window.GlobePinGallery = ({ moments, x, y, locationName, onSelect, onEnter, onLe
   );
 };
 
-window.MomentSlideshow = ({ slides, onSelect }) => {
-  const [index, setIndex] = React.useState(0);
-  const [paused, setPaused] = React.useState(false);
-  React.useEffect(function() {
-    setIndex(0);
-  }, [slides && slides.length]);
-  React.useEffect(function() {
-    if (!slides || slides.length < 2 || paused) return undefined;
-    const id = setInterval(function() {
-      setIndex(function(i) { return (i + 1) % slides.length; });
-    }, 4200);
-    return function() { clearInterval(id); };
-  }, [slides, paused]);
-  if (!slides || !slides.length) return null;
-  const slide = slides[index % slides.length];
-  if (!slide) return null;
-  return React.createElement(
-    'button',
-    {
-      type: 'button',
-      className: 'globe-moment-show' + (paused ? ' is-paused' : ''),
-      'aria-label': slide.title || 'Moment slideshow',
-      onMouseEnter: function() { setPaused(true); },
-      onMouseLeave: function() { setPaused(false); },
-      onClick: function() { onSelect(slide); }
-    },
-    React.createElement('img', {
-      key: slide.id,
-      src: slide.image,
-      alt: slide.title || '',
-      className: 'globe-moment-show-img',
-      draggable: false
-    }),
-    React.createElement(
-      'div',
-      { className: 'globe-moment-show-meta' },
-      React.createElement('div', { className: 'globe-moment-show-title' }, slide.title),
-      React.createElement('div', { className: 'globe-moment-show-date' }, window.formatClusterDate(slide.date))
-    )
-  );
-};
-
 window.applyGlobePixelRatio = (globe, el) => {
   if (!globe || !el) return;
   const w = el.clientWidth;
@@ -418,7 +376,6 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   hexClusterRef.current = hexCluster;
   const [pinGallery, setPinGallery] = React.useState(null);
   const pinGalleryHideRef = React.useRef(null);
-  const [slideMoments, setSlideMoments] = React.useState([]);
 
     // Keep drawer state accessible globally
     React.useEffect(() => {
@@ -1039,16 +996,6 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       const yearMatch = !selectedYear || selectedYear === "All" || new Date(post.date).getUTCFullYear().toString() === selectedYear;
       return tagMatch && yearMatch;
     });
-    setSlideMoments(filteredPosts.map(function(p) {
-      return {
-        id: p.id,
-        image: window.resolveGlobeImage(p),
-        title: p.title || p.timelineHighlight || '',
-        date: p.date,
-        lat: p.location && p.location.lat,
-        lng: p.location && p.location.lng
-      };
-    }).filter(function(s) { return !!s.image; }));
     if (globeInstance.current) {
       const hexBinData = filteredPosts.map(post => ({
         lat: post.location.lat,
@@ -1799,10 +1746,6 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         setPinGallery(null);
         focusClusterMoment(m);
       }
-    }),
-    !popoverContent && !hexCluster && !isBlogDrawerOpen && slideMoments.length > 0 && React.createElement(window.MomentSlideshow, {
-      slides: slideMoments,
-      onSelect: function(m) { focusClusterMoment(m); }
     }),
     hexCluster && React.createElement(window.HexClusterSheet, {
       moments: hexCluster.moments,

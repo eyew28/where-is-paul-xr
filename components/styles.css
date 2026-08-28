@@ -160,7 +160,7 @@ body {
 
 .location-button {
   position: fixed;
-  bottom: 145px; /* Moved higher to clear timeline */
+  bottom: 16px;
   right: 16px;
   background: rgba(26, 26, 26, 0.9); /* Matches timeline and filter drawer */
   border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
@@ -193,8 +193,8 @@ body {
     line-height: 1.2; /* Improve readability */
   }
   .location-button {
-    bottom: 160px; /* Higher on mobile to avoid timeline overlap */
-    right : 10px;
+    bottom: 16px;
+    right: 10px;
     width: 44px;
     height: 44px;
   }
