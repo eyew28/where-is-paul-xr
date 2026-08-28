@@ -38,7 +38,6 @@
   <script defer src="lib/tailwind.min.js" crossorigin="anonymous"></script>
   <script defer src="lib/react.production.min.js" crossorigin="anonymous"></script>
   <script defer src="lib/react-dom.production.min.js" crossorigin="anonymous"></script>
-  <script defer src="lib/babel.min.js" crossorigin="anonymous"></script>
   <script defer src="lib/three.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Three.js')"></script>
   <script defer src="lib/d3.min.js" crossorigin="anonymous" onerror="console.error('Failed to load D3')"></script>
   <script defer src="lib/globe.gl.min.js" crossorigin="anonymous" onerror="console.error('Failed to load Globe.GL')"></script>
@@ -134,8 +133,8 @@
   </script>
 
   <!-- Data (Load First) -->
-  <script type="text/babel" defer src="moments/moments.js?v=20260827b"></script>
-  <script type="text/babel" defer src="characters/characters.js?v=20251116120100"></script>
+  <script defer src="moments/moments.js?v=20260827b"></script>
+  <script defer src="characters/characters.js?v=20251116120100"></script>
   <!-- jQuery for Turn.js -->
   <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script defer src="lib/turn.min.js"></script>
@@ -144,31 +143,32 @@
   <script defer src="lib/leaflet.js"></script>
 
   <!-- Local Scripts -->
-  <script type="text/babel" defer src="components/globe.js?v=20260827j"></script>
-  <script type="text/babel" defer src="components/blogPostDrawer.js?v=20260827e"></script>
-  <script type="text/babel" defer src="components/interactiveEpisodeDrawer.js"></script>
+  <script defer src="components/globe.js?v=20260827j"></script>
+  <script defer src="components/blogPostDrawer.js?v=20260827e"></script>
+  <script defer src="components/interactiveEpisodeDrawer.js"></script>
   <!-- Comic Reader Components (load in order) -->
-  <script type="text/babel" defer src="components/comicReader/core.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/comicReader/deviceDetection.js"></script>
-  <script type="text/babel" defer src="components/comicReader/styles.js"></script>
-  <script type="text/babel" defer src="components/comicReader/flipbook.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/comicReader/navigation.js"></script>
-  <script type="text/babel" defer src="components/comicReader/immersiveV4.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/comicReader/characterSlideViewer.js"></script>
-  <script type="text/babel" defer src="components/comicReader/render.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/comicReader.js?v=20260818a"></script>
-  <script type="text/babel" defer src="components/footer.js?v=20260827j"></script>
-  <script type="text/babel" defer src="components/app.js?v=20260818a"></script>
+  <script defer src="components/comicReader/core.js?v=20260818a"></script>
+  <script defer src="components/comicReader/deviceDetection.js"></script>
+  <script defer src="components/comicReader/styles.js"></script>
+  <script defer src="components/comicReader/flipbook.js?v=20260818a"></script>
+  <script defer src="components/comicReader/navigation.js"></script>
+  <script defer src="components/comicReader/immersiveV4.js?v=20260818a"></script>
+  <script defer src="components/comicReader/characterSlideViewer.js"></script>
+  <script defer src="components/comicReader/render.js?v=20260818a"></script>
+  <script defer src="components/comicReader.js?v=20260828a"></script>
+  <script defer src="components/footer.js?v=20260827j"></script>
+  <script defer src="components/app.js?v=20260818a"></script>
   <script defer src="components/episodeNavigation.js?v=20260818a"></script>
 
-  <!-- Render the App -->
-  <script type="text/babel" defer>
-    try {
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(React.createElement(window.App));
-    } catch (error) {
-      console.error('Error rendering React app:', error);
-    }
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(window.App));
+      } catch (error) {
+        console.error('Error rendering React app:', error);
+      }
+    });
   </script>
 </body>
   <!-- Link to Latest -->
