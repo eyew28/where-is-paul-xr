@@ -1495,7 +1495,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         title: full.title || full.timelineHighlight || '',
         date: full.date,
         locationName: (full.location && full.location.name) || p.label || '',
-        image: resolveMomentImage(full),
+        image: window.resolveGlobeImage(full),
         stayDuration: full.stayDuration || p.weight,
         isComic: !!full.isComic,
         lat: (full.location && full.location.lat) || p.lat,

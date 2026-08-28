@@ -815,12 +815,13 @@
 }
 
 .hex-cluster-title {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-light);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-transform: none;
+  color: #fff;
   margin: 0;
 }
 
@@ -848,12 +849,12 @@
 .hex-cluster-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  min-height: 64px;
-  padding: 8px 10px;
+  min-height: 112px;
+  padding: 10px 12px;
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-light);
   text-align: left;
@@ -874,9 +875,9 @@
 }
 
 .hex-cluster-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 96px;
+  height: 96px;
+  border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
   background: #0a0a0c;
@@ -892,16 +893,21 @@
 }
 
 .hex-cluster-row-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.015em;
   line-height: 1.25;
   color: #fff;
 }
 
 .hex-cluster-row-meta {
-  font-size: 12px;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: var(--text-muted);
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .globe-photo-pin {
@@ -1153,7 +1159,11 @@
     width: 100%;
   }
   .hex-cluster-row {
-    min-height: 68px;
+    min-height: 108px;
+  }
+  .hex-cluster-thumb {
+    width: 88px;
+    height: 88px;
   }
   .globe-photo-pin-inner {
     width: 48px;
