@@ -37,21 +37,24 @@ window.minimapLeftToU = (leftPercent) => {
   return Math.max(0, Math.min(1, (leftPercent - edge) / (100 - edge * 2)));
 };
 
-window.scrubTimelineToMinimapU = (u) => {
+window.scrubTimelineToMinimapU = (u, smooth = true) => {
   const t = Math.max(0, Math.min(1, u));
   const container = document.querySelector('.timeline-scroll');
   if (!container) return;
   const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-  container.scrollTo({ left: t * maxScroll, behavior: 'smooth' });
+  container.scrollTo({ left: t * maxScroll, behavior: smooth ? 'smooth' : 'auto' });
 };
 
-window.scrubTimelineToMinimapEvent = (event) => {
+window.scrubTimelineToMinimapEvent = (event, smooth = true) => {
   const wrap = document.querySelector('.era-band-wrap');
   if (!wrap) return;
   const rect = wrap.getBoundingClientRect();
   if (rect.width <= 0) return;
-  const leftPercent = ((event.clientX - rect.left) / rect.width) * 100;
-  window.scrubTimelineToMinimapU(window.minimapLeftToU(leftPercent));
+  const clientX = (event.clientX != null) ? event.clientX
+    : (event.changedTouches && event.changedTouches[0] ? event.changedTouches[0].clientX : null);
+  if (clientX == null) return;
+  const leftPercent = ((clientX - rect.left) / rect.width) * 100;
+  window.scrubTimelineToMinimapU(window.minimapLeftToU(leftPercent), smooth);
 };
 
 window.syncMinimapPlayhead = (container) => {
@@ -347,6 +350,125 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     };
   }, [handleTimelineClick]);
 
+  // ------------------------------------------------------------------
+  // Pointer-driven scrub + swipe-to-expand for the era minimap (touch).
+  // - Horizontal drag on .era-band-wrap scrubs the timeline (instant).
+  // - Vertical swipe on .era-minimap toggles .is-expanded on .wip-footer.
+  // - A plain tap scrubs to the tapped x; it does NOT expand.
+  // - All pointer events stopPropagation so globe.js touch handlers never see them.
+  // ------------------------------------------------------------------
+  React.useEffect(() => {
+    const bandWrap = document.querySelector('.era-band-wrap');
+    const minimap = document.querySelector('.era-minimap');
+    const footer = document.querySelector('.wip-footer');
+    if (!bandWrap || !minimap || !footer) return;
+
+    const SWIPE_THRESHOLD = 40;
+
+    let bandPointerId = null;
+    let bandStartX = 0;
+    let bandStartY = 0;
+    let bandDragging = false;
+
+    const bandScrubTo = (clientX, smooth) => {
+      const rect = bandWrap.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const leftPercent = ((clientX - rect.left) / rect.width) * 100;
+      window.scrubTimelineToMinimapU(window.minimapLeftToU(leftPercent), smooth);
+    };
+
+    const onBandPointerDown = (event) => {
+      event.stopPropagation();
+      if (bandPointerId !== null) return;
+      bandPointerId = event.pointerId;
+      bandStartX = event.clientX;
+      bandStartY = event.clientY;
+      bandDragging = false;
+      try { bandWrap.setPointerCapture(event.pointerId); } catch (_) {}
+      bandScrubTo(event.clientX, true);
+    };
+
+    const onBandPointerMove = (event) => {
+      if (event.pointerId !== bandPointerId) return;
+      event.stopPropagation();
+      const dx = event.clientX - bandStartX;
+      const dy = event.clientY - bandStartY;
+      if (!bandDragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+        bandDragging = Math.abs(dx) >= Math.abs(dy);
+      }
+      if (bandDragging) bandScrubTo(event.clientX, false);
+    };
+
+    const onBandPointerUp = (event) => {
+      if (event.pointerId !== bandPointerId) return;
+      event.stopPropagation();
+      try { bandWrap.releasePointerCapture(event.pointerId); } catch (_) {}
+      bandPointerId = null;
+      bandDragging = false;
+    };
+
+    let swipePointerId = null;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+    let swipeResolved = false;
+
+    const onMinimapPointerDown = (event) => {
+      if (swipePointerId !== null) return;
+      swipePointerId = event.pointerId;
+      swipeStartX = event.clientX;
+      swipeStartY = event.clientY;
+      swipeResolved = false;
+    };
+
+    const onMinimapPointerMove = (event) => {
+      if (event.pointerId !== swipePointerId) return;
+      const dx = event.clientX - swipeStartX;
+      const dy = event.clientY - swipeStartY;
+      if (swipeResolved) return;
+      if (Math.abs(dy) <= SWIPE_THRESHOLD && Math.abs(dx) <= SWIPE_THRESHOLD) return;
+      // |dx| > |dy| → horizontal scrub (band handler owns it). |dy| >= |dx| → swipe toggle.
+      if (Math.abs(dx) > Math.abs(dy)) {
+        swipeResolved = true;
+        return;
+      }
+      swipeResolved = true;
+      const isExpanded = footer.classList.contains('is-expanded');
+      if (dy < 0 && !isExpanded) footer.classList.add('is-expanded');
+      else if (dy > 0 && isExpanded) footer.classList.remove('is-expanded');
+    };
+
+    const onMinimapPointerUp = (event) => {
+      if (event.pointerId !== swipePointerId) return;
+      swipePointerId = null;
+      swipeResolved = false;
+    };
+
+    // Capture phase so vertical swipes starting on .era-band-wrap children are seen
+    // even though band-wrap's own pointerdown calls stopPropagation (which blocks bubble phase).
+    // We do NOT setPointerCapture or stopPropagation here — band-wrap's handlers must own
+    // horizontal scrubs, and globe.js already excludes .wip-footer from its touch handlers.
+    minimap.addEventListener('pointerdown', onMinimapPointerDown, true);
+    minimap.addEventListener('pointermove', onMinimapPointerMove, true);
+    minimap.addEventListener('pointerup', onMinimapPointerUp, true);
+    minimap.addEventListener('pointercancel', onMinimapPointerUp, true);
+
+    bandWrap.addEventListener('pointerdown', onBandPointerDown);
+    bandWrap.addEventListener('pointermove', onBandPointerMove);
+    bandWrap.addEventListener('pointerup', onBandPointerUp);
+    bandWrap.addEventListener('pointercancel', onBandPointerUp);
+
+    return () => {
+      minimap.removeEventListener('pointerdown', onMinimapPointerDown, true);
+      minimap.removeEventListener('pointermove', onMinimapPointerMove, true);
+      minimap.removeEventListener('pointerup', onMinimapPointerUp, true);
+      minimap.removeEventListener('pointercancel', onMinimapPointerUp, true);
+      bandWrap.removeEventListener('pointerdown', onBandPointerDown);
+      bandWrap.removeEventListener('pointermove', onBandPointerMove);
+      bandWrap.removeEventListener('pointerup', onBandPointerUp);
+      bandWrap.removeEventListener('pointercancel', onBandPointerUp);
+    };
+  }, []);
+
   // Helper function for tooltip full date
   const formatFullDateRange = (startDate, duration) => {
     const start = new Date(startDate);
@@ -592,7 +714,6 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
             style: { left: `${yearToPercent(y)}%` },
             onClick: (event) => {
               event.stopPropagation();
-              if (event.currentTarget && event.currentTarget.blur) event.currentTarget.blur();
               window.scrubTimelineToMinimapEvent(event);
             },
             'aria-label': `Jump to ${y}`
@@ -604,6 +725,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
         'div',
         {
           className: 'era-band-wrap',
+          style: { touchAction: 'none' },
           onClick: (event) => window.scrubTimelineToMinimapEvent(event)
         },
         React.createElement(
@@ -617,7 +739,6 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
               className: `era-seg era-seg--${era.key} ${activeEraKey === era.key ? 'active' : ''}`,
               onClick: (event) => {
                 event.stopPropagation();
-                if (event.currentTarget && event.currentTarget.blur) event.currentTarget.blur();
                 window.scrubTimelineToMinimapEvent(event);
               },
               'aria-label': `Jump to ${era.label}`
