@@ -494,12 +494,18 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
 
   // Era for a given year
   const ERA_DEFS = [
-    { key: 'childhood',    label: 'Childhood',       years: "'88–'03",      start: '1988-01-01', end: '2003-12-31' },
-    { key: 'comingofage', label: 'Coming of Age',   years: "'04–'21",      start: '2004-01-01', end: '2021-12-31' },
-    { key: 'firsttravels', label: 'First Travels',   years: "Jul '22–Oct '23", start: '2022-07-01', end: '2023-10-31' },
-    { key: 'americas',     label: 'Americas',       years: "May '24–Jul '25", start: '2024-05-01', end: '2025-07-31' },
-    { key: 'sea',          label: 'Southeast Asia', years: "Aug '25–Feb '26", start: '2025-08-01', end: '2026-02-28' },
-    { key: 'sovereignty',  label: 'Sovereignty',    years: "Feb '26–",     start: '2026-02-28', end: '2026-12-31' }
+    { key: 'varna',       label: 'Varna',       years: "'88–'94",          start: '1988-01-01', end: '1994-11-23' },
+    { key: 'sofia',       label: 'Sofia',       years: "'94–'04",          start: '1994-11-24', end: '2004-07-31' },
+    { key: 'osseo',       label: 'Osseo',       years: "'04",              start: '2004-08-01', end: '2005-01-31' },
+    { key: 'chicago',     label: 'Chicago',     years: "'05–'21",          start: '2005-02-01', end: '2021-12-31' },
+    { key: 'medellin',    label: 'Medellín',    years: "'22",              start: '2022-07-01', end: '2022-12-31' },
+    { key: 'florida',     label: 'Florida',     years: "Jan–Aug '23",      start: '2023-01-01', end: '2023-08-08' },
+    { key: 'odyssey',     label: 'Odyssey',     years: "Aug–Oct '23",      start: '2023-08-09', end: '2023-10-31' },
+    { key: 'americas',    label: 'Americas',    years: "May '24–Aug '25",  start: '2024-05-01', end: '2025-08-12' },
+    { key: 'runner',      label: 'Runner',      years: "Aug–Sep '25",      start: '2025-08-13', end: '2025-09-23' },
+    { key: 'return',      label: 'Return',      years: "Sep–Nov '25",      start: '2025-09-24', end: '2025-11-03' },
+    { key: 'islands',     label: 'Islands',     years: "Nov '25–Feb '26",  start: '2025-11-04', end: '2026-02-27' },
+    { key: 'sovereignty', label: 'Sovereign',   years: "Feb '26–",         start: '2026-02-28', end: '2026-12-31' }
   ];
   const eraForDate = (dateStr) => {
     const d = new Date(dateStr).getTime();

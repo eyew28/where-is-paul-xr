@@ -50,11 +50,17 @@
   --post-accent: #7dd3fc;
 
   /* — new: era palette — */
-  --era-childhood: #e85d92;
-  --era-comingofage: #4ecdc4;
-  --era-firsttravels: #f5a623;
+  --era-varna: #e85d92;
+  --era-sofia: #c084fc;
+  --era-osseo: #34d399;
+  --era-chicago: #4ecdc4;
+  --era-medellin: #fb7185;
+  --era-florida: #38bdf8;
+  --era-odyssey: #f5a623;
   --era-americas: #f97316;
-  --era-sea: #06b6d4;
+  --era-runner: #06b6d4;
+  --era-return: #eab308;
+  --era-islands: #2dd4bf;
   --era-sovereignty: #a78bfa;
 
   /* — new: geometry — */
@@ -210,9 +216,14 @@ html.touch-ui .era-minimap:focus-within .era-ticks {
   pointer-events: auto;
 }
 
+html.touch-ui .era-seg {
+  font-size: 0.5rem;
+  letter-spacing: 0.02em;
+  padding: 0 2px;
+}
 html.touch-ui .era-seg__label {
   opacity: 1;
-  font-size: 0.625rem;
+  font-size: 0.5rem;
 }
 html.touch-ui .era-minimap:hover .era-seg__label,
 html.touch-ui .era-minimap:focus-within .era-seg__label,
@@ -316,8 +327,8 @@ html:not(.touch-ui) .era-minimap:focus-within .era-ticks {
 .era-band {
   position: relative;
   height: 8px;
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  flex-wrap: nowrap;
   gap: 2px;
   border-radius: 4px;
   overflow: hidden;
@@ -336,6 +347,8 @@ html:not(.touch-ui) .era-minimap:focus-within .era-band {
 
 .era-seg {
   position: relative;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -380,11 +393,17 @@ html:not(.touch-ui) .era-minimap:focus-within .era-seg__years {
 .era-seg.active { color: #fff; }
 .era-seg.active::before { opacity: 0.85; }
 
-.era-seg--childhood::before { background: var(--era-childhood); }
-.era-seg--comingofage::before { background: var(--era-comingofage); }
-.era-seg--firsttravels::before { background: var(--era-firsttravels); }
+.era-seg--varna::before { background: var(--era-varna); }
+.era-seg--sofia::before { background: var(--era-sofia); }
+.era-seg--osseo::before { background: var(--era-osseo); }
+.era-seg--chicago::before { background: var(--era-chicago); }
+.era-seg--medellin::before { background: var(--era-medellin); }
+.era-seg--florida::before { background: var(--era-florida); }
+.era-seg--odyssey::before { background: var(--era-odyssey); }
 .era-seg--americas::before { background: var(--era-americas); }
-.era-seg--sea::before { background: var(--era-sea); }
+.era-seg--runner::before { background: var(--era-runner); }
+.era-seg--return::before { background: var(--era-return); }
+.era-seg--islands::before { background: var(--era-islands); }
 .era-seg--sovereignty::before { background: var(--era-sovereignty); }
 
 .era-seg__label { position: relative; z-index: 1; }
@@ -897,7 +916,7 @@ html:not(.touch-ui) .era-minimap:focus-within .era-playhead {
   .era-seg__years { display: none; }
   .era-ticks { font-size: 0.625rem; height: 18px; }
   .era-band { height: 36px; }
-  .era-seg { font-size: 0.5625rem; letter-spacing: 0.04em; }
+  .era-seg { font-size: 0.5rem; letter-spacing: 0.02em; padding: 0 2px; }
   .timeline-track { padding: 0 14px; }
   .timeline-rail { left: 14px; right: 14px; top: calc(var(--img-h) + (var(--rail-row) / 2)); }
   .tl-year { width: 60px; }
