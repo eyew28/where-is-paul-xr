@@ -177,6 +177,7 @@
   </div>
   <script>
     document.getElementById('latest-link').addEventListener('click', function() {
+      try { localStorage.setItem('wip-seen', '1'); } catch (e) {}
       var moments = window.momentsInTime;
       if (moments && moments.length && window.handleTimelineClick) {
         window.handleTimelineClick(moments[moments.length - 1]);

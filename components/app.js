@@ -389,7 +389,31 @@ window.App = () => {
         updateOverlayMessage('Looking for Paul');
       }
     } else {
-      // Check for current moment based on today's date
+      const forceGlobe = params.get('globe') === '1' || window.location.hash === '#globe';
+      const forceLatest = params.get('latest') === '1' || window.location.hash === '#latest';
+      const hasSeen = localStorage.getItem('wip-seen') === '1';
+
+      if (forceGlobe) {
+        updateOverlayMessage('Where is Paul?');
+        return;
+      }
+
+      if (forceLatest) {
+        const latestMoment = window.momentsInTime[window.momentsInTime.length - 1];
+        if (latestMoment) {
+          handleMomentSelection(latestMoment);
+        } else {
+          updateOverlayMessage('Looking for Paul');
+        }
+        return;
+      }
+
+      if (!hasSeen) {
+        localStorage.setItem('wip-seen', '1');
+        updateOverlayMessage('Where is Paul?');
+        return;
+      }
+
       const today = new Date();
       const currentMoment = window.momentsInTime.find(moment => {
         const startDate = new Date(moment.date);
@@ -399,15 +423,12 @@ window.App = () => {
       });
 
       if (currentMoment) {
-        // Simulate clicking on the timeline element for this moment
         const timelineElement = document.querySelector(`[data-id="${currentMoment.id}"]`);
         if (timelineElement) {
-          // Add a small delay to ensure event handlers are attached
           setTimeout(() => {
             timelineElement.click();
           }, 100);
         } else {
-          // Fallback to direct selection if timeline element not found
           updateOverlayMessage(`Exploring ${currentMoment.title}`);
           handleMomentSelection(currentMoment);
         }
