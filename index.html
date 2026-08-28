@@ -205,7 +205,6 @@
       function shouldShowHint() {
         try {
           if (localStorage.getItem(STORAGE_KEY) === '1') return false;
-          if (localStorage.getItem('wip-seen') === '1') return false;
           return true;
         } catch (e) { return false; }
       }

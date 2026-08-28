@@ -410,36 +410,8 @@ window.App = () => {
 
       if (!hasSeen) {
         localStorage.setItem('wip-seen', '1');
-        updateOverlayMessage('Where is Paul?');
-        return;
       }
-
-      const today = new Date();
-      const currentMoment = window.momentsInTime.find(moment => {
-        const startDate = new Date(moment.date);
-        const endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + moment.stayDuration);
-        return today >= startDate && today <= endDate;
-      });
-
-      if (currentMoment) {
-        const timelineElement = document.querySelector(`[data-id="${currentMoment.id}"]`);
-        if (timelineElement) {
-          setTimeout(() => {
-            timelineElement.click();
-          }, 100);
-        } else {
-          updateOverlayMessage(`Exploring ${currentMoment.title}`);
-          handleMomentSelection(currentMoment);
-        }
-      } else {
-        const latestMoment = window.momentsInTime[window.momentsInTime.length - 1];
-        if (latestMoment) {
-          handleMomentSelection(latestMoment);
-        } else {
-          updateOverlayMessage('Looking for Paul');
-        }
-      }
+      updateOverlayMessage('Where is Paul?');
     }
   }, [zoomCallback]);
 
