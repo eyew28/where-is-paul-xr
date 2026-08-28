@@ -184,20 +184,15 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
       }).sort((a, b) => a.dist - b.dist);
       ranked.forEach(({ el, dist }, i) => {
         const d = dist / slot;
-        let scaleY;
-        let scaleX;
+        let scale;
         if (d <= 1) {
-          scaleY = 1.2 - 0.32 * d;
-          scaleX = 1.32 - 0.44 * d;
+          scale = 1.2 - 0.32 * d;
         } else if (d <= 2) {
-          scaleY = 0.88 - 0.24 * (d - 1);
-          scaleX = scaleY;
+          scale = 0.88 - 0.24 * (d - 1);
         } else {
-          scaleY = 0.64;
-          scaleX = 0.64;
+          scale = 0.64;
         }
-        el.style.setProperty('--focus-scale', String(scaleY));
-        el.style.setProperty('--focus-scale-x', String(scaleX));
+        el.style.setProperty('--focus-scale', String(scale));
         el.classList.remove('is-focus-0', 'is-focus-1', 'is-focus-2');
         if (i === 0) el.classList.add('is-focus-0');
         else if (i <= 2) el.classList.add('is-focus-1');

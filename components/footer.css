@@ -450,7 +450,7 @@ body.blog-drawer-open .wip-footer {
   background: var(--canvas-raise);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
   flex: 0 0 auto;
-  transform: scale(var(--focus-scale-x, var(--focus-scale, 0.64)), var(--focus-scale, 0.64));
+  transform: scale(var(--focus-scale, 0.64));
   transform-origin: center bottom;
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -464,6 +464,7 @@ body.blog-drawer-open .wip-footer {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
   filter: brightness(0.92) saturate(1.04);
   transition: transform 0.5s var(--transition), filter var(--transition);
