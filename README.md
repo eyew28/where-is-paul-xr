@@ -1,58 +1,38 @@
 # Where is Paul?
 
-> Part of **[Sci-Fi Labs](https://github.com/paulvisciano)** — spatial apps for web, mobile, and XR.  
-> [Where is Paul?](https://paulvisciano.com/apps/where-is-paul) · [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph) · [Musical Cubes](https://musical-cubes.vercel.app) · [Neuro Graph](https://paulvisciano.com/apps/neuro-graph)
+> Part of **[Sci-Fi Labs](https://github.com/paulvisciano)** — spatial web apps.  
+> [Where is Paul?](https://paulvisciano.com/apps/where-is-paul) · [Musical Cubes](https://paulvisciano.com/apps/musical-cubes) · [Neuro Graph](https://paulvisciano.com/apps/neuro-graph)
 
 [![Where is Paul? — Watch the video](https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/where-is-paul.jpg)](https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/portfolio/where-is-paul-tablet.mp4)
 
-**Where is Paul?** is a reimagining of personal history as a living, spatial record of a life deliberately lived — a luminous Earth where cities, crossings, and hard-won stays rise as glowing markers, and time itself becomes navigable. Moments appear as blog posts, swipeable cards, videos, and AI-generated comic-book sequences drawn from real photographs and lived scenes, some carrying QR codes that open onto the actual places they depict. The people who shaped the journey are present too, each with a short video in which they speak for themselves. This is not documentation for its own sake, but a deliberate trail of adventure, curiosity, and human connection left to inspire the future generation — proof that a full, challenging, far-reaching life is possible, and that the map, the stories, the places, and the voices still remain for them to continue.
+**Where is Paul?** is a spatial web app — a living record of a life on a 3D globe. Cities, crossings, and stays glow on a luminous Earth. Time is navigable. Moments appear as posts, cards, videos, and comic-book sequences drawn from real photographs.
 
-A Sci-Fi app: a 3D globe and timeline built for the web and mobile first — a spatial life map ready to extend into XR.
+Same URL on a phone, a desk, and Safari on Vision Pro. Pinch to zoom. Look to look around. No extra session. No app store binary.
 
-Where is Paul? is the experience layer of a memory-mapping lineage. The moments, people, and places captured here feed into [Neuro Graph](https://github.com/paulvisciano/neuro-graph) — the first attempt to map memory as a connected network — and into [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph), which evolved that concept into a fully local, AI-driven memory palace. The same lived experience, expressed three ways: as a globe you travel, as a graph you orbit, and as a private intelligence that understands it.
+Hex **color** on the globe encodes how long you stayed — not height.
 
-**Live project:** [paulvisciano.com/apps/where-is-paul](https://paulvisciano.com/apps/where-is-paul)  
-**About Paul & other work:** [paulvisciano.vercel.app](https://paulvisciano.vercel.app/)
+**Make your own:** clone this repo and edit `moments/moments.js`. That is the only file you need to change.
 
----
-
-## What You’ll Find
-
-- **Interactive 3D Globe**  
-  Explore a glowing Earth with location markers that show where Paul has been. Stay durations are visualized, and the entire surface becomes a navigable map of a life in motion.
-
-- **Timeline Navigation**  
-  Move through years and moments. Click any point to open the stories, photos, and experiences tied to that place and time.
-
-- **Mixed Story Formats**  
-  - Quiet blog-style posts  
-  - Swipeable cards  
-  - Short videos  
-  - Full comic-book sequences
-
-- **Real Life → Comic**  
-  Photographs and real scenes from daily life are transformed with AI into illustrated comic pages — keeping the truth of what happened while giving it a mythic visual language.
-
-- **Virtual ↔ Real Bridge**  
-  Some comic pages contain embedded QR codes that lead directly to the real-world locations they depict, letting the digital and physical worlds fold into each other.
-
-- **The People**  
-  Everyone who has been part of the journey has a presence here. Each person includes a short video in which they narrate a bit about themselves — their own voice, in their own words.
+**Live:** [paulvisciano.com/apps/where-is-paul](https://paulvisciano.com/apps/where-is-paul)  
+**Built by:** [paulvisciano.com](https://paulvisciano.com/)
 
 ---
 
-## Why This Exists
+## What you’ll find
 
-This project is built as a living record of adventure, travel, and self-challenge.  
-It is meant to stand as an invitation — a visible trail left to inspire the future generation to live fully, move boldly, and make their own path.
-
-Not advice.  
-Not pressure.  
-Just proof that such a life is possible.
-
-The moments published here are not just stories — they are nodes in a larger memory architecture. Each moment carries a `sourceDocument` link that traces back into [Neuro Graph](https://github.com/paulvisciano/neuro-graph), where people, places, emotions, and time are connected as synapses. The same data, processed locally by [Knowledge Graph](https://github.com/paulvisciano/knowledge-graph), becomes a living knowledge graph that a local AI can query, extend, and reason about. One life, three surfaces — all sovereign.
+- **Interactive 3D globe** — location markers on a glowing Earth. Stay duration is the hex color.
+- **Timeline** — move through years and open the stories tied to a place.
+- **Mixed story formats** — posts, swipeable cards, short videos, comic sequences.
+- **Real life → comic** — photographs turned into illustrated pages without losing what happened.
+- **The people** — short videos in their own voices.
 
 ---
 
-**Built by** [Paul Visciano](https://paulvisciano.vercel.app/) · **Sci-Fi Labs**  
+## Why this exists
+
+A trail of travel and self-challenge. Proof that a full life is possible — not advice, not a product launch.
+
+---
+
+**Built by** [Paul Visciano](https://paulvisciano.com/) · **Sci-Fi Labs**  
 **Live at** [paulvisciano.com/apps/where-is-paul](https://paulvisciano.com/apps/where-is-paul)
