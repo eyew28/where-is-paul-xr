@@ -340,7 +340,10 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       let initialSlide = null;
       if (characterId && window.characterComicBook?.pages) {
         const idx = window.characterComicBook.pages.findIndex(p => p.character === characterId);
-        if (idx >= 0) initialSlide = idx + 1; // 1-based page number
+        if (idx >= 0) {
+          initialSlide = (window.characterComicBook.pageSlugs && window.characterComicBook.pageSlugs[idx])
+            || (idx + 1);
+        }
       }
       window.handleOpenBlogPost('characters-comic-book-2025-09-15', { initialSlide });
       setIsDrawerOpen(false);
@@ -349,6 +352,10 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   const [popoverContent, setPopoverContent] = React.useState(null);
   window.setPopoverContent = setPopoverContent;
   const [isDrawerOpen, setIsDrawerOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchCursor, setSearchCursor] = React.useState(0);
+  const searchInputRef = React.useRef(null);
   
     // Check for characters when drawer opens
     React.useEffect(() => {
@@ -1091,9 +1098,11 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     if (post) {
       // Update moment selection (URL and globe zoom) if not already selected
       let intendedPath = post.fullLink && post.fullLink !== "#" ? post.fullLink : `/moments/${postId}`;
-      // For character comic, append #slide-N when opening to a specific character's slide
       if (postId === 'characters-comic-book-2025-09-15' && options.initialSlide) {
-        intendedPath = intendedPath.replace(/#.*$/, '') + '#slide-' + options.initialSlide;
+        const slideHash = typeof options.initialSlide === 'string'
+          ? '#' + options.initialSlide
+          : '#slide-' + options.initialSlide;
+        intendedPath = intendedPath.replace(/#.*$/, '') + slideHash;
       }
       if (selectedId !== postId) {
         setSelectedId(postId);
@@ -1513,8 +1522,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     const next = moments[idx + dir];
     if (!next) return null;
     if (opts && opts.fromComic) {
-      if (next.isComic) return next;
       setIsBlogDrawerOpen(false);
+      setBlogPostContent(null);
       setCarouselDir(dir);
       showMomentCard(next);
       return next;
@@ -1522,6 +1531,92 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     setCarouselDir(dir);
     showMomentCard(next);
     return next;
+  };
+
+  const foldSearch = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const searchResults = React.useMemo(() => {
+    const q = foldSearch(searchQuery).trim();
+    if (!q || !searchOpen) return [];
+    const out = [];
+    (window.characters || []).forEach((c) => {
+      const hay = foldSearch([c.name, c.nickname, c.role, c.description, c.bio, (c.tags || []).join(' ')].join(' '));
+      if (hay.includes(q)) {
+        out.push({ kind: 'people', id: 'p-' + c.id, title: c.name, subtitle: c.role || '', thumb: c.avatar, characterId: c.id });
+      }
+    });
+    (window.ERA_DEFS || []).forEach((e) => {
+      if (foldSearch([e.label, e.years, e.key].join(' ')).includes(q)) {
+        out.push({ kind: 'eras', id: 'e-' + e.key, title: e.label, subtitle: e.years, era: e });
+      }
+    });
+    const seenPlace = new Set();
+    (window.momentsInTime || []).forEach((m) => {
+      const loc = (m.location && m.location.name) || '';
+      const hay = foldSearch([m.title, m.timelineHighlight, m.snippet, loc, (m.tags || []).join(' ')].join(' '));
+      if (!hay.includes(q)) return;
+      const isStory = !!(m.isComic || m.isInteractive || m.contentFile);
+      if (isStory) {
+        out.push({ kind: 'blogs', id: 'b-' + m.id, title: m.title, subtitle: loc, momentId: m.id, isComic: !!m.isComic });
+      }
+      if (loc) {
+        const pk = foldSearch(loc);
+        if (!seenPlace.has(pk) && (foldSearch(loc).includes(q) || !isStory)) {
+          seenPlace.add(pk);
+          out.push({ kind: 'places', id: 'l-' + pk, title: loc, subtitle: m.title, momentId: m.id });
+        }
+      }
+    });
+    return out.slice(0, 32);
+  }, [searchQuery, searchOpen]);
+
+  React.useEffect(() => { setSearchCursor(0); }, [searchQuery, searchOpen]);
+
+  React.useEffect(() => {
+    if (searchOpen && searchInputRef.current) searchInputRef.current.focus();
+  }, [searchOpen]);
+
+  React.useEffect(() => {
+    const onKey = (event) => {
+      const metaK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
+      if (metaK) {
+        event.preventDefault();
+        setSearchOpen((v) => !v);
+        setIsDrawerOpen(false);
+        return;
+      }
+      if (event.key === '/' && !searchOpen && event.target && !/input|textarea/i.test(event.target.tagName)) {
+        event.preventDefault();
+        setSearchOpen(true);
+        setIsDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [searchOpen]);
+
+  const openSearchResult = (item) => {
+    if (!item) return;
+    setSearchOpen(false);
+    setSearchQuery('');
+    if (item.kind === 'people') {
+      handleOpenCharacterComic(item.characterId);
+    } else if (item.kind === 'eras' && item.era) {
+      const start = new Date(item.era.start).getTime();
+      const end = new Date(item.era.end).getTime();
+      const m = (window.momentsInTime || []).find((x) => {
+        const t = new Date(x.date).getTime();
+        return t >= start && t <= end;
+      });
+      if (m) showMomentCard(m);
+      if (window.minimapDateToPercent && window.scrubTimelineToMinimapU) {
+        window.scrubTimelineToMinimapU(window.minimapDateToPercent(item.era.start) / 100, true);
+      }
+    } else if (item.kind === 'blogs') {
+      handleOpenBlogPost(item.momentId, item.isComic ? { skipCover: true } : {});
+    } else if (item.kind === 'places') {
+      const m = (window.momentsInTime || []).find((x) => x.id === item.momentId);
+      if (m) showMomentCard(m);
+    }
   };
 
   React.useEffect(() => {
@@ -1555,13 +1650,29 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
   return React.createElement(
     'div',
     { className: 'container mx-auto main-content' },
-    React.createElement(
-      'div',
-      { className: 'filter-topbar' },
       React.createElement(
-        'button',
-        {
-          className: `filter-toggle ${isDrawerOpen ? 'is-open' : ''} ${activeFilters.length > 0 ? 'is-active' : ''}`,
+        'div',
+        { className: 'filter-topbar' },
+        React.createElement(
+          'button',
+          {
+            className: `search-toggle ${searchOpen ? 'is-open' : ''}`,
+            onClick: () => { setSearchOpen(!searchOpen); setIsDrawerOpen(false); },
+            'aria-label': 'Search places, people, stories, eras',
+            'aria-expanded': searchOpen ? 'true' : 'false'
+          },
+          React.createElement('span', { className: 'filter-toggle-icon' },
+            React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+              React.createElement('circle', { cx: 11, cy: 11, r: 7 }),
+              React.createElement('line', { x1: 16.5, y1: 16.5, x2: 21, y2: 21 })
+            )
+          ),
+          React.createElement('span', { className: 'filter-toggle-label' }, 'Search')
+        ),
+        React.createElement(
+          'button',
+          {
+            className: `filter-toggle ${isDrawerOpen ? 'is-open' : ''} ${activeFilters.length > 0 ? 'is-active' : ''}`,
           onClick: () => setIsDrawerOpen(!isDrawerOpen),
           'aria-expanded': isDrawerOpen ? 'true' : 'false',
           'aria-controls': 'filter-drawer'
@@ -1787,6 +1898,77 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
               )
             )
           )
+        )
+      )
+    ),
+    searchOpen && React.createElement(
+      'div',
+      {
+        className: 'search-backdrop',
+        onClick: () => setSearchOpen(false)
+      },
+      React.createElement(
+        'div',
+        {
+          className: 'search-palette',
+          onClick: (e) => e.stopPropagation(),
+          role: 'dialog',
+          'aria-label': 'Search'
+        },
+        React.createElement(
+          'div',
+          { className: 'search-palette__bar' },
+          React.createElement('input', {
+            ref: searchInputRef,
+            className: 'search-palette__input',
+            type: 'search',
+            placeholder: 'Places, people, stories, eras',
+            value: searchQuery,
+            onChange: (e) => setSearchQuery(e.target.value),
+            onKeyDown: (e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                setSearchOpen(false);
+              } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSearchCursor((i) => Math.min(i + 1, Math.max(0, searchResults.length - 1)));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSearchCursor((i) => Math.max(i - 1, 0));
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                openSearchResult(searchResults[searchCursor]);
+              }
+            }
+          }),
+          React.createElement('span', { className: 'search-palette__hint' }, '⌘K')
+        ),
+        React.createElement(
+          'div',
+          { className: 'search-palette__list' },
+          searchQuery.trim() && searchResults.length === 0
+            ? React.createElement('div', { className: 'search-palette__empty' }, 'Nothing matches')
+            : searchResults.map((item, i) =>
+                React.createElement(
+                  'button',
+                  {
+                    key: item.id,
+                    type: 'button',
+                    className: 'search-palette__row' + (i === searchCursor ? ' is-active' : ''),
+                    onMouseEnter: () => setSearchCursor(i),
+                    onClick: () => openSearchResult(item)
+                  },
+                  item.thumb
+                    ? React.createElement('img', { className: 'search-palette__thumb', src: item.thumb, alt: '' })
+                    : React.createElement('span', { className: 'search-palette__kind' }, item.kind),
+                  React.createElement(
+                    'span',
+                    { className: 'search-palette__text' },
+                    React.createElement('span', { className: 'search-palette__title' }, item.title),
+                    item.subtitle ? React.createElement('span', { className: 'search-palette__sub' }, item.subtitle) : null
+                  )
+                )
+              )
         )
       )
     ),
