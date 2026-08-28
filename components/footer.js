@@ -507,6 +507,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     { key: 'islands',     label: 'Islands',     years: "Nov '25–Feb '26",  start: '2025-11-04', end: '2026-02-27' },
     { key: 'sovereignty', label: 'Sovereign',   years: "Feb '26–",         start: '2026-02-28', end: '2026-12-31' }
   ];
+  window.ERA_DEFS = ERA_DEFS;
   const eraForDate = (dateStr) => {
     const d = new Date(dateStr).getTime();
     for (const era of ERA_DEFS) {
