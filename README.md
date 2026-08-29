@@ -50,7 +50,7 @@ npm start
 
 Open [http://localhost:8080](http://localhost:8080). Don’t open `index.html` as a file — posts fetch over HTTP.
 
-Earth textures load from unpkg. Images already in this repo point at my Cloudflare R2 bucket, so you’ll still need the network until you swap them.
+Earth textures load from unpkg.
 
 ### Where the data lives
 
@@ -145,9 +145,7 @@ Edit `characters/characters.js`. Each person:
 
 ### Media
 
-Keep files in the repo, or host them at any `https://` URL (your own Cloudflare R2 bucket, etc.).
-
-Do not keep using `pub-9466bb5132e74aeba333004ad0c21f21.r2.dev` — that’s my bucket.
+Put images and video in the moment folder, or use any `https://` URL.
 
 ### Publish
 
