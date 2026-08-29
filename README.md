@@ -65,7 +65,7 @@ The app is a shell. Almost everything you see is data files loaded by `index.htm
 | Photos / video | Local path, `attachment://…`, or any `https://` URL | Moments + characters |
 | Branding | `index.html`, `manifest.json` | Browser |
 
-`.env` is **not** read at runtime. R2 keys, OpenAI, and GitHub tokens are only for optional upload/authoring tools under `mcp-r2-upload/` and `scripts/`.
+`.env` is **not** read at runtime.
 
 There is no tracker, no auth, no ads. `localStorage` is used only to hide the first-run hint.
 
@@ -106,8 +106,6 @@ fullLink: "/moments/lisbon/2025-10-12",
 contentFile: "/moments/lisbon/2025-10-12/content.html",
 ```
 
-`node scripts/create-moment-folders.js` will scaffold empty folders from whatever is already in `moments.js`.
-
 ### Add a comic
 
 ```js
@@ -147,7 +145,7 @@ Edit `characters/characters.js`. Each person:
 
 ### Media
 
-Keep files in the repo, or upload to your own Cloudflare R2 bucket. Setup for the upload tool is in `mcp-r2-upload/README.md`.
+Keep files in the repo, or host them at any `https://` URL (your own Cloudflare R2 bucket, etc.).
 
 Do not keep using `pub-9466bb5132e74aeba333004ad0c21f21.r2.dev` — that’s my bucket.
 
