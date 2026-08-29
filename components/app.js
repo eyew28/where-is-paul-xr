@@ -418,9 +418,10 @@ window.App = () => {
   // Listen for popstate events (back/forward navigation)
   React.useEffect(() => {
     const handlePopState = (event) => {
-      // Comic reader consumed back (exit fullscreen or go back to cover on Android)
-      if (window.comicConsumedBack) {
+      // Overlay/comic consumed back (Android swipe-back / hardware back = Escape)
+      if (window.comicConsumedBack || window.overlayConsumedBack) {
         window.comicConsumedBack = false;
+        window.overlayConsumedBack = false;
         return;
       }
       const state = event.state || {};

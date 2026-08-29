@@ -583,6 +583,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
           touchStartY.current = null;
           return;
         }
+        if (touchStartX.current < 24) return;
         const touchEndX = event.touches[0].clientX;
         const touchEndY = event.touches[0].clientY;
         const deltaX = touchEndX - touchStartX.current;
@@ -1440,6 +1441,84 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     }
     onZoomHandler();
   };
+
+  // Android swipe-back / hardware back = Escape: dismiss one overlay, stay in the app.
+  const androidBackStateRef = React.useRef({});
+  androidBackStateRef.current = {
+    isBlogDrawerOpen,
+    blogPostContent,
+    hexCluster,
+    popoverContent,
+    searchOpen,
+    searchQuery
+  };
+  const androidBackClosedViaPopRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!/Android/i.test(navigator.userAgent || '')) return undefined;
+
+    const comicOpen = document.body.classList.contains('comic-is-open')
+      || (blogPostContent && isComicEpisode(blogPostContent.postId || '', blogPostContent.title));
+    if (comicOpen) return undefined;
+
+    const layerOpen = !!(isBlogDrawerOpen || hexCluster || popoverContent || searchOpen);
+
+    if (!layerOpen) {
+      if (androidBackClosedViaPopRef.current) {
+        androidBackClosedViaPopRef.current = false;
+        return undefined;
+      }
+      if (window.history.state && window.history.state.escLayer) {
+        window.overlayConsumedBack = true;
+        window.history.back();
+      }
+      return undefined;
+    }
+
+    if (androidBackClosedViaPopRef.current) {
+      androidBackClosedViaPopRef.current = false;
+    }
+    if (!(window.history.state && window.history.state.escLayer)) {
+      const state = Object.assign({}, window.history.state || {}, { escLayer: true });
+      window.history.pushState(state, '', window.location.href);
+    }
+
+    const handlePopState = () => {
+      if (document.body.classList.contains('comic-is-open')) return;
+      const s = androidBackStateRef.current;
+      androidBackClosedViaPopRef.current = true;
+      window.overlayConsumedBack = true;
+
+      if (s.isBlogDrawerOpen) {
+        const postId = s.blogPostContent && s.blogPostContent.postId;
+        setIsBlogDrawerOpen(false);
+        setBlogPostContent(null);
+        const moment = postId && (window.momentsInTime || []).find((m) => m.id === postId);
+        if (moment && typeof window.showMomentCard === 'function') {
+          window.showMomentCard(moment);
+        }
+        return;
+      }
+      if (s.hexCluster) {
+        closeHexCluster();
+        return;
+      }
+      if (s.popoverContent) {
+        setPopoverContent(null);
+        setSelectedId(null);
+        return;
+      }
+      if (s.searchOpen) {
+        if (s.searchQuery) setSearchQuery('');
+        else {
+          setSearchOpen(false);
+          if (searchInputRef.current) searchInputRef.current.blur();
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState, true);
+    return () => window.removeEventListener('popstate', handlePopState, true);
+  }, [isBlogDrawerOpen, blogPostContent, hexCluster, popoverContent, searchOpen, searchQuery, setSelectedId]);
 
   window.showMomentCard = showMomentCard;
   window.showGlobePinGallery = function(d, x, y) {
