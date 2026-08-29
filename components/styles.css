@@ -208,13 +208,9 @@ html.touch-ui body {
   }
 }
 
-/* Touch UI: park the location button above the era-strip peek (Task 4).
-   `--touch-peek` is defined in footer.css :root as
-   calc(56px + env(safe-area-inset-bottom, 0px)). Desktop (no .touch-ui)
-   keeps bottom: 16px from the rule above. z-index stays 30 (below
-   .wip-footer at 10001). */
+/* Touch UI: location button is hidden on mobile. */
 .touch-ui .location-button {
-  bottom: calc(var(--touch-peek, 56px) + 8px);
+  display: none;
 }
 
 .blog-post-backdrop {
