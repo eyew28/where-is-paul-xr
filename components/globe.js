@@ -565,6 +565,13 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       if (event.target.closest('.overlay') || event.target.closest('.popover') || event.target.closest('.filter-drawer') || event.target.closest('.blog-post-drawer') || event.target.closest('.comic-episode-overlay') || event.target.closest('.hex-cluster-backdrop') || event.target.closest('.hex-cluster-sheet') || event.target.closest('.wip-footer')) {
         return;
       }
+      if (document.documentElement.classList.contains('touch-ui') && touchStartX.current !== null && touchStartY.current !== null) {
+        const t = event.touches[0];
+        const dist = Math.hypot(t.clientX - touchStartX.current, t.clientY - touchStartY.current);
+        if (dist > 16 || event.touches.length === 2) {
+          window.dispatchEvent(new Event('wip-footer-collapse'));
+        }
+      }
       if (event.touches.length === 1 && popoverContent && touchStartX.current !== null && touchStartY.current !== null) {
         // Prevent dismissing popover when touch starts on the globe
         if (event.target.closest('#globeViz')) {
@@ -627,10 +634,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
           const target = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : null;
           const isChrome = target && (target.closest('.hex-cluster-backdrop') || target.closest('.hex-cluster-sheet') || target.closest('.filter-drawer') || target.closest('.overlay') || target.closest('.popover'));
           if (!isChrome) {
-            const expandedFooter = document.querySelector('.wip-footer.is-expanded');
-            if (expandedFooter) {
-              expandedFooter.classList.remove('is-expanded');
-            }
+            window.dispatchEvent(new Event('wip-footer-collapse'));
           }
         }
         footerTapStartX.current = null;
@@ -884,6 +888,10 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         globeInstance.current.controls().enableZoom = true;
         globeInstance.current.controls().minDistance = 145;
         globeInstance.current.controls().maxDistance = 700;
+        globeInstance.current.controls().addEventListener('start', function () {
+          if (!document.documentElement.classList.contains('touch-ui')) return;
+          window.dispatchEvent(new Event('wip-footer-collapse'));
+        });
       } catch (error) {
       }
 
