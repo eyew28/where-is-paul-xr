@@ -567,8 +567,12 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       }
       if (document.documentElement.classList.contains('touch-ui') && touchStartX.current !== null && touchStartY.current !== null) {
         const t = event.touches[0];
-        const dist = Math.hypot(t.clientX - touchStartX.current, t.clientY - touchStartY.current);
-        if (dist > 16 || event.touches.length === 2) {
+        const dx = t.clientX - touchStartX.current;
+        const dy = t.clientY - touchStartY.current;
+        const dist = Math.hypot(dx, dy);
+        if (dy < -40 && Math.abs(dy) > Math.abs(dx) && touchStartY.current > window.innerHeight - 340) {
+          window.dispatchEvent(new Event('wip-footer-expand'));
+        } else if (dist > 16 || event.touches.length === 2) {
           window.dispatchEvent(new Event('wip-footer-collapse'));
         }
       }
