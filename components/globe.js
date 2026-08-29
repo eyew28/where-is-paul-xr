@@ -1549,6 +1549,27 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         out.push({ kind: 'eras', id: 'e-' + e.key, title: e.label, subtitle: e.years, era: e });
       }
     });
+    const tagCounts = {};
+    (window.momentsInTime || []).forEach((m) => {
+      (m.tags || []).forEach((raw) => {
+        const tag = String(raw || '').trim();
+        if (!tag) return;
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+    Object.keys(tagCounts).forEach((tag) => {
+      const ft = foldSearch(tag);
+      if (ft.includes(q) || ('#' + ft).includes(q)) {
+        const n = tagCounts[tag];
+        out.push({
+          kind: 'tags',
+          id: 't-' + ft,
+          title: '#' + tag,
+          subtitle: n + (n === 1 ? ' moment' : ' moments'),
+          tag
+        });
+      }
+    });
     const seenPlace = new Set();
     (window.momentsInTime || []).forEach((m) => {
       const loc = (m.location && m.location.name) || '';
@@ -1580,8 +1601,9 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       const metaK = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
       if (metaK) {
         event.preventDefault();
-        setSearchOpen((v) => !v);
         setIsDrawerOpen(false);
+        setSearchOpen(true);
+        if (searchInputRef.current) searchInputRef.current.focus();
         return;
       }
       if (event.key === '/' && !searchOpen && event.target && !/input|textarea/i.test(event.target.tagName)) {
@@ -1616,6 +1638,8 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     } else if (item.kind === 'places') {
       const m = (window.momentsInTime || []).find((x) => x.id === item.momentId);
       if (m) showMomentCard(m);
+    } else if (item.kind === 'tags' && item.tag) {
+      setSelectedTag(item.tag);
     }
   };
 
@@ -1654,42 +1678,89 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         'div',
         { className: 'filter-topbar' },
         React.createElement(
-          'button',
-          {
-            className: `search-toggle ${searchOpen ? 'is-open' : ''}`,
-            onClick: () => { setSearchOpen(!searchOpen); setIsDrawerOpen(false); },
-            'aria-label': 'Search places, people, stories, eras',
-            'aria-expanded': searchOpen ? 'true' : 'false'
-          },
-          React.createElement('span', { className: 'filter-toggle-icon' },
+          'div',
+          { className: 'search-combo' + (searchOpen ? ' is-open' : '') },
+          React.createElement('span', { className: 'search-combo__icon', 'aria-hidden': 'true' },
             React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
               React.createElement('circle', { cx: 11, cy: 11, r: 7 }),
               React.createElement('line', { x1: 16.5, y1: 16.5, x2: 21, y2: 21 })
             )
           ),
-          React.createElement('span', { className: 'filter-toggle-label' }, 'Search')
+          React.createElement('input', {
+            ref: searchInputRef,
+            className: 'search-combo__input',
+            type: 'search',
+            placeholder: 'Places, people, stories, eras, tags',
+            value: searchQuery,
+            'aria-label': 'Search places, people, stories, eras, tags',
+            onFocus: () => { setSearchOpen(true); setIsDrawerOpen(false); },
+            onChange: (e) => { setSearchQuery(e.target.value); setSearchOpen(true); },
+            onKeyDown: (e) => {
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                if (searchQuery) setSearchQuery('');
+                else { setSearchOpen(false); e.target.blur(); }
+              } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSearchCursor((i) => Math.min(i + 1, Math.max(0, searchResults.length - 1)));
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSearchCursor((i) => Math.max(i - 1, 0));
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                openSearchResult(searchResults[searchCursor]);
+              }
+            }
+          }),
+          React.createElement(
+            'button',
+            {
+              className: `filter-toggle filter-toggle--icon ${isDrawerOpen ? 'is-open' : ''} ${activeFilters.length > 0 ? 'is-active' : ''}`,
+              onClick: () => { setIsDrawerOpen(!isDrawerOpen); setSearchOpen(false); },
+              'aria-label': 'Filters',
+              'aria-expanded': isDrawerOpen ? 'true' : 'false',
+              'aria-controls': 'filter-drawer',
+              type: 'button'
+            },
+            React.createElement('span', { className: 'filter-toggle-icon' },
+              React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                React.createElement('path', { d: 'M3 4h18l-7 8v7l-4 2v-9L3 4z' })
+              )
+            ),
+            activeFilters.length > 0 ? React.createElement('span', { className: 'filter-toggle-badge' }, activeFilters.length) : null
+          ),
+          searchOpen && searchQuery.trim() ? React.createElement(
+            'div',
+            { className: 'search-palette search-palette--docked', onMouseDown: (e) => e.preventDefault() },
+            React.createElement(
+              'div',
+              { className: 'search-palette__list' },
+              searchResults.length === 0
+                ? React.createElement('div', { className: 'search-palette__empty' }, 'Nothing matches')
+                : searchResults.map((item, i) =>
+                    React.createElement(
+                      'button',
+                      {
+                        key: item.id,
+                        type: 'button',
+                        className: 'search-palette__row' + (i === searchCursor ? ' is-active' : ''),
+                        onMouseEnter: () => setSearchCursor(i),
+                        onClick: () => openSearchResult(item)
+                      },
+                      item.thumb
+                        ? React.createElement('img', { className: 'search-palette__thumb', src: item.thumb, alt: '' })
+                        : React.createElement('span', { className: 'search-palette__kind' }, item.kind),
+                      React.createElement(
+                        'span',
+                        { className: 'search-palette__text' },
+                        React.createElement('span', { className: 'search-palette__title' }, item.title),
+                        item.subtitle ? React.createElement('span', { className: 'search-palette__sub' }, item.subtitle) : null
+                      )
+                    )
+                  )
+            )
+          ) : null
         ),
-        React.createElement(
-          'button',
-          {
-            className: `filter-toggle ${isDrawerOpen ? 'is-open' : ''} ${activeFilters.length > 0 ? 'is-active' : ''}`,
-          onClick: () => setIsDrawerOpen(!isDrawerOpen),
-          'aria-expanded': isDrawerOpen ? 'true' : 'false',
-          'aria-controls': 'filter-drawer'
-        },
-        React.createElement('span', { className: 'filter-toggle-icon' },
-          React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
-            React.createElement('path', { d: 'M3 4h18l-7 8v7l-4 2v-9L3 4z' })
-          )
-        ),
-        React.createElement('span', { className: 'filter-toggle-label' }, 'Filters'),
-        activeFilters.length > 0 ? React.createElement('span', { className: 'filter-toggle-badge' }, activeFilters.length) : null,
-        React.createElement('span', { className: 'filter-toggle-chevron' },
-          React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' },
-            React.createElement('polyline', { points: '6 9 12 15 18 9' })
-          )
-        )
-      ),
       activeFilters.length > 0 && React.createElement(
         'div',
         { className: 'filter-active-chips' },
@@ -1898,77 +1969,6 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
               )
             )
           )
-        )
-      )
-    ),
-    searchOpen && React.createElement(
-      'div',
-      {
-        className: 'search-backdrop',
-        onClick: () => setSearchOpen(false)
-      },
-      React.createElement(
-        'div',
-        {
-          className: 'search-palette',
-          onClick: (e) => e.stopPropagation(),
-          role: 'dialog',
-          'aria-label': 'Search'
-        },
-        React.createElement(
-          'div',
-          { className: 'search-palette__bar' },
-          React.createElement('input', {
-            ref: searchInputRef,
-            className: 'search-palette__input',
-            type: 'search',
-            placeholder: 'Places, people, stories, eras',
-            value: searchQuery,
-            onChange: (e) => setSearchQuery(e.target.value),
-            onKeyDown: (e) => {
-              if (e.key === 'Escape') {
-                e.preventDefault();
-                setSearchOpen(false);
-              } else if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setSearchCursor((i) => Math.min(i + 1, Math.max(0, searchResults.length - 1)));
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSearchCursor((i) => Math.max(i - 1, 0));
-              } else if (e.key === 'Enter') {
-                e.preventDefault();
-                openSearchResult(searchResults[searchCursor]);
-              }
-            }
-          }),
-          React.createElement('span', { className: 'search-palette__hint' }, '⌘K')
-        ),
-        React.createElement(
-          'div',
-          { className: 'search-palette__list' },
-          searchQuery.trim() && searchResults.length === 0
-            ? React.createElement('div', { className: 'search-palette__empty' }, 'Nothing matches')
-            : searchResults.map((item, i) =>
-                React.createElement(
-                  'button',
-                  {
-                    key: item.id,
-                    type: 'button',
-                    className: 'search-palette__row' + (i === searchCursor ? ' is-active' : ''),
-                    onMouseEnter: () => setSearchCursor(i),
-                    onClick: () => openSearchResult(item)
-                  },
-                  item.thumb
-                    ? React.createElement('img', { className: 'search-palette__thumb', src: item.thumb, alt: '' })
-                    : React.createElement('span', { className: 'search-palette__kind' }, item.kind),
-                  React.createElement(
-                    'span',
-                    { className: 'search-palette__text' },
-                    React.createElement('span', { className: 'search-palette__title' }, item.title),
-                    item.subtitle ? React.createElement('span', { className: 'search-palette__sub' }, item.subtitle) : null
-                  )
-                )
-              )
         )
       )
     ),
