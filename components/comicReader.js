@@ -1284,7 +1284,25 @@ window.ComicReader = ({ content, onClose }) => {
           lineHeight: 1.5,
           maxWidth: 280
         }
-      }, 'Rotate your device to landscape for the best experience')
+      }, 'Rotate your device to landscape for the best experience'),
+      React.createElement('button', {
+        key: 'close',
+        type: 'button',
+        onClick: function(e) {
+          e.stopPropagation();
+          handleClose();
+        },
+        style: {
+          marginTop: 8,
+          padding: '12px 28px',
+          background: 'transparent',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.5)',
+          borderRadius: 8,
+          fontSize: '1rem',
+          cursor: 'pointer'
+        }
+      }, 'Close')
     ]));
   }
   
