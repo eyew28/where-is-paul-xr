@@ -47,7 +47,9 @@ coverage/
 
 # Ignore ZIP files (since you might create these for distribution)
 *.zip
-*.tar.gz# AI Memory - exclude personal conversation history
+*.tar.gz
+
+# AI Memory - exclude personal conversation history
 memories/sessions/*cursor-history*
 
 # Raw content - local files only, never commit to GitHub
@@ -76,3 +78,19 @@ user-*/
 .sisyphus/
 .vercel
 .env*
+.playwright-mcp/
+
+# Local editor / AI workspace — not served by the site
+.cursor/
+.ai/
+
+# Duplicate or internal docs (README.md is the public one)
+VISION.md
+ECOSYSTEM.md
+README.mdx
+components/README-*.md
+components/comicReader/MOBILE_VIEWPORT_TESTING.md
+components/comicReader/STYLE_SPEC.md
+
+# Authoring notes; the site loads moments.js and content.html
+moments/**/*.md
