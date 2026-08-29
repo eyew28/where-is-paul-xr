@@ -157,6 +157,7 @@ html.touch-ui .wip-footer.is-expanded {
 html.touch-ui .timeline-scroll {
   padding-top: 72px;
   padding-bottom: 8px;
+  touch-action: pan-x;
 }
 
 html.touch-ui .era-minimap {

@@ -82,8 +82,13 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
 
   React.useEffect(() => {
     const collapse = () => setIsExpanded(false);
+    const expand = () => setIsExpanded(true);
     window.addEventListener('wip-footer-collapse', collapse);
-    return () => window.removeEventListener('wip-footer-collapse', collapse);
+    window.addEventListener('wip-footer-expand', expand);
+    return () => {
+      window.removeEventListener('wip-footer-collapse', collapse);
+      window.removeEventListener('wip-footer-expand', expand);
+    };
   }, []);
 
   // Filter moments by selectedTag and selectedYear
@@ -364,7 +369,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
   React.useEffect(() => {
     const bandWrap = document.querySelector('.era-band-wrap');
     const footer = document.querySelector('.wip-footer');
-    if (!bandWrap || !footer) return;
+    if (!footer) return;
 
     const isTouch = document.documentElement.classList.contains('touch-ui');
     const SWIPE_THRESHOLD = 40;
@@ -417,6 +422,19 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     let swipeStartY = 0;
     let swipeResolved = false;
 
+    const resolveVerticalSwipe = (dx, dy, event) => {
+      if (swipeResolved) return;
+      if (Math.abs(dy) <= SWIPE_THRESHOLD && Math.abs(dx) <= SWIPE_THRESHOLD) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        swipeResolved = true;
+        return;
+      }
+      swipeResolved = true;
+      if (event && event.cancelable) event.preventDefault();
+      if (dy < 0) setIsExpanded(true);
+      else if (dy > 0) setIsExpanded(false);
+    };
+
     const onFooterPointerDown = (event) => {
       if (swipePointerId !== null) return;
       swipePointerId = event.pointerId;
@@ -427,33 +445,31 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
 
     const onFooterPointerMove = (event) => {
       if (event.pointerId !== swipePointerId) return;
-      const dx = event.clientX - swipeStartX;
-      const dy = event.clientY - swipeStartY;
-      if (swipeResolved) return;
-      if (Math.abs(dy) <= SWIPE_THRESHOLD && Math.abs(dx) <= SWIPE_THRESHOLD) return;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        swipeResolved = true;
-        return;
-      }
-      swipeResolved = true;
-      if (event.cancelable) event.preventDefault();
-      if (dy < 0) setIsExpanded(true);
-      else if (dy > 0) setIsExpanded(false);
+      resolveVerticalSwipe(event.clientX - swipeStartX, event.clientY - swipeStartY, event);
     };
 
     const onFooterTouchMove = (event) => {
-      if (swipePointerId === null) return;
       const touch = event.touches && event.touches[0];
       if (!touch) return;
-      const dy = touch.clientY - swipeStartY;
-      const dx = touch.clientX - swipeStartX;
-      if (Math.abs(dy) > Math.abs(dx) && event.cancelable) {
-        event.preventDefault();
+      if (swipePointerId === null) {
+        swipePointerId = 'touch';
+        swipeStartX = touch.clientX;
+        swipeStartY = touch.clientY;
+        swipeResolved = false;
       }
+      const dx = touch.clientX - swipeStartX;
+      const dy = touch.clientY - swipeStartY;
+      if (Math.abs(dy) > Math.abs(dx) && event.cancelable) event.preventDefault();
+      resolveVerticalSwipe(dx, dy, event);
     };
 
     const onFooterPointerUp = (event) => {
-      if (event.pointerId !== swipePointerId) return;
+      if (event.pointerId !== swipePointerId && swipePointerId !== 'touch') return;
+      swipePointerId = null;
+      swipeResolved = false;
+    };
+
+    const onFooterTouchEnd = () => {
       swipePointerId = null;
       swipeResolved = false;
     };
@@ -463,11 +479,15 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     footer.addEventListener('pointerup', onFooterPointerUp, true);
     footer.addEventListener('pointercancel', onFooterPointerUp, true);
     footer.addEventListener('touchmove', onFooterTouchMove, { capture: true, passive: false });
+    footer.addEventListener('touchend', onFooterTouchEnd, true);
+    footer.addEventListener('touchcancel', onFooterTouchEnd, true);
 
-    bandWrap.addEventListener('pointerdown', onBandPointerDown);
-    bandWrap.addEventListener('pointermove', onBandPointerMove);
-    bandWrap.addEventListener('pointerup', onBandPointerUp);
-    bandWrap.addEventListener('pointercancel', onBandPointerUp);
+    if (bandWrap) {
+      bandWrap.addEventListener('pointerdown', onBandPointerDown);
+      bandWrap.addEventListener('pointermove', onBandPointerMove);
+      bandWrap.addEventListener('pointerup', onBandPointerUp);
+      bandWrap.addEventListener('pointercancel', onBandPointerUp);
+    }
 
     return () => {
       footer.removeEventListener('pointerdown', onFooterPointerDown, true);
@@ -475,10 +495,14 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
       footer.removeEventListener('pointerup', onFooterPointerUp, true);
       footer.removeEventListener('pointercancel', onFooterPointerUp, true);
       footer.removeEventListener('touchmove', onFooterTouchMove, true);
-      bandWrap.removeEventListener('pointerdown', onBandPointerDown);
-      bandWrap.removeEventListener('pointermove', onBandPointerMove);
-      bandWrap.removeEventListener('pointerup', onBandPointerUp);
-      bandWrap.removeEventListener('pointercancel', onBandPointerUp);
+      footer.removeEventListener('touchend', onFooterTouchEnd, true);
+      footer.removeEventListener('touchcancel', onFooterTouchEnd, true);
+      if (bandWrap) {
+        bandWrap.removeEventListener('pointerdown', onBandPointerDown);
+        bandWrap.removeEventListener('pointermove', onBandPointerMove);
+        bandWrap.removeEventListener('pointerup', onBandPointerUp);
+        bandWrap.removeEventListener('pointercancel', onBandPointerUp);
+      }
     };
   }, []);
 
