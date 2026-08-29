@@ -1,4 +1,28 @@
 window.InteractiveEpisodeDrawer = ({ content, onClose }) => {
+  const closeDrawer = () => {
+    const postId = content && content.postId;
+    onClose();
+    if (typeof window.setBlogPostContent === 'function') {
+      window.setBlogPostContent(null);
+    }
+    const moment = postId && (window.momentsInTime || []).find((m) => m.id === postId);
+    if (moment && typeof window.showMomentCard === 'function') {
+      window.showMomentCard(moment);
+    }
+  };
+
+  React.useEffect(() => {
+    if (!content) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      closeDrawer();
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [content, onClose]);
+
   return React.createElement(
     React.Fragment,
     null,
