@@ -131,6 +131,7 @@ html.touch-ui .wip-footer {
   gap: 14px;
   overflow: visible;
   transform: translateY(calc(100% - 280px));
+  transition: transform 0.62s cubic-bezier(0.32, 0.72, 0, 1);
 }
 html.touch-ui .wip-footer:hover,
 html.touch-ui .wip-footer:focus-within {
@@ -157,7 +158,7 @@ html.touch-ui .wip-footer.is-expanded {
 html.touch-ui .timeline-scroll {
   padding-top: 72px;
   padding-bottom: 8px;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
 }
 
 html.touch-ui .era-minimap {
@@ -640,9 +641,41 @@ html:not(.touch-ui) .era-minimap:focus-within .era-playhead {
   background: var(--canvas-raise);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
   flex: 0 0 auto;
-  transform: scale(var(--focus-scale, 0.64));
+  transform: translateZ(0) scale(var(--focus-scale, 0.64));
   transform-origin: center bottom;
   transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+html.touch-ui .tl-entry__media {
+  transition: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+@keyframes tlCardFocus {
+  0% { transform: translate3d(0, 0, 0) scale(0.82); }
+  50% { transform: translate3d(0, 0, 0) scale(1.12); }
+  100% { transform: translate3d(0, 0, 0) scale(0.82); }
+}
+@supports (animation-timeline: view()) {
+  html.touch-ui .tl-entry__media {
+    animation: tlCardFocus linear both;
+    animation-timeline: view(inline);
+    animation-range: cover;
+  }
+}
+html.touch-ui .tl-entry.is-focus-0 .tl-entry__media {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+html.touch-ui .tl-entry__media img {
+  filter: none;
+  transition: none;
+}
+html.touch-ui .tl-entry:hover .tl-entry__media img,
+html.touch-ui .tl-entry.selected .tl-entry__media img {
+  transform: none;
+  filter: none;
+}
+html.touch-ui .tl-entry:hover .tl-entry__media,
+html.touch-ui .tl-entry.selected .tl-entry__media {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
 .tl-entry.is-focus-0 { z-index: 6; }
 .tl-entry.is-focus-1 { z-index: 5; }

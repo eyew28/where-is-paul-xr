@@ -65,9 +65,10 @@ window.syncMinimapPlayhead = (container) => {
   const u = maxScroll <= 0 ? 1 : Math.max(0, Math.min(1, container.scrollLeft / maxScroll));
   playhead.style.left = `${window.minimapUToLeft(u)}%`;
 
-  const entries = Array.from(container.querySelectorAll('.tl-entry[data-date]'));
   const yearEl = playhead.querySelector('.era-playhead__year');
-  if (!yearEl || entries.length === 0) return;
+  if (!yearEl || yearEl.offsetParent === null) return;
+  const entries = container.querySelectorAll('.tl-entry[data-date]');
+  if (entries.length === 0) return;
   const idx = Math.round(u * (entries.length - 1));
   const date = entries[idx].getAttribute('data-date');
   if (date) {
@@ -190,48 +191,116 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     const container = document.querySelector('.timeline-scroll');
     if (!container) return;
     let raf = null;
+    const isTouch = document.documentElement.classList.contains('touch-ui');
+    const cssView = isTouch && window.CSS && (
+      CSS.supports('animation-timeline', 'view()')
+      || CSS.supports('animation-timeline: view()')
+      || CSS.supports('animation-timeline', 'view(inline)')
+    );
+    const minScale = isTouch ? 0.82 : 0.64;
+    let entries = [];
+    let slot = 176;
+    let lastFocus0 = null;
+    let trackOrigin = 0;
+
+    const measure = () => {
+      entries = Array.from(container.querySelectorAll('.tl-entry'));
+      const track = container.querySelector('.timeline-track');
+      trackOrigin = track ? track.offsetLeft : 0;
+      if (entries[0]) {
+        slot = entries[0].offsetWidth + (parseFloat(getComputedStyle(entries[0]).marginRight) || 64);
+      }
+      for (let i = 0; i < entries.length; i += 1) {
+        const el = entries[i];
+        el._center = trackOrigin + el.offsetLeft + el.offsetWidth / 2;
+        el._media = el._media || el.querySelector('.tl-entry__media');
+      }
+      maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    };
+
+    const peakScale = isTouch ? 1.12 : 1.2;
+    const range = peakScale - minScale;
+    const invTwoSigma = 1 / (2 * 0.9 * 0.9);
+    const playhead = document.querySelector('.era-playhead');
+    let maxScroll = 0;
+
+    const writeScale = (el, x) => {
+      if (el._focusScale === x) return;
+      el._focusScale = x;
+      if (isTouch) {
+        if (el._media) el._media.style.transform = 'translate3d(0,0,0) scale(' + x + ')';
+      } else {
+        el.style.setProperty('--focus-scale', String(x));
+      }
+    };
+
     const updateFocusScales = () => {
-      const crect = container.getBoundingClientRect();
-      const centerX = crect.left + crect.width / 2;
-      const entries = Array.from(container.querySelectorAll('.tl-entry'));
-      if (entries.length === 0) return;
-      const slot = entries[0].offsetWidth + (parseFloat(getComputedStyle(entries[0]).marginRight) || 64);
-      const ranked = entries.map(el => {
-        const r = el.getBoundingClientRect();
-        return { el, dist: Math.abs(r.left + r.width / 2 - centerX) };
-      }).sort((a, b) => a.dist - b.dist);
-      ranked.forEach(({ el, dist }, i) => {
-        const d = dist / slot;
-        let scale;
-        if (d <= 1) {
-          scale = 1.2 - 0.32 * d;
-        } else if (d <= 2) {
-          scale = 0.88 - 0.24 * (d - 1);
-        } else {
-          scale = document.documentElement.classList.contains('touch-ui') ? 0.82 : 0.64;
+      if (entries.length === 0) measure();
+      const viewCenter = container.scrollLeft + container.clientWidth / 2;
+      const near = slot * 2.2;
+      let closest = null;
+      let closestDist = Infinity;
+      for (let i = 0; i < entries.length; i += 1) {
+        const el = entries[i];
+        const dist = Math.abs((el._center || 0) - viewCenter);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closest = el;
         }
-        el.style.setProperty('--focus-scale', String(scale));
-        el.classList.remove('is-focus-0', 'is-focus-1', 'is-focus-2');
-        if (i === 0) el.classList.add('is-focus-0');
-        else if (i <= 2) el.classList.add('is-focus-1');
-        else if (i <= 4) el.classList.add('is-focus-2');
-      });
-      window.syncMinimapPlayhead(container);
+        if (cssView) continue;
+        if (dist > near) {
+          writeScale(el, minScale);
+          continue;
+        }
+        const d = dist / slot;
+        const x = Math.round((minScale + range * Math.exp(-d * d * invTwoSigma)) * 1000) / 1000;
+        writeScale(el, x);
+      }
+      if (closest !== lastFocus0) {
+        if (lastFocus0) lastFocus0.classList.remove('is-focus-0', 'is-focus-1', 'is-focus-2');
+        if (closest) closest.classList.add('is-focus-0');
+        lastFocus0 = closest;
+      }
+      if (playhead) {
+        if (!maxScroll) maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+        const sl = container.scrollLeft;
+        const u = maxScroll <= 0 ? 1 : Math.max(0, Math.min(1, sl / maxScroll));
+        playhead.style.left = window.minimapUToLeft(u) + '%';
+      }
     };
-    const onScroll = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
-        updateFocusScales();
-      });
+
+    let lastScrollLeft = -1;
+    let idleFrames = 0;
+    const tick = () => {
+      updateFocusScales();
+      const sl = container.scrollLeft;
+      if (sl === lastScrollLeft) {
+        idleFrames += 1;
+        if (idleFrames > 12) {
+          raf = null;
+          return;
+        }
+      } else {
+        idleFrames = 0;
+        lastScrollLeft = sl;
+      }
+      raf = requestAnimationFrame(tick);
     };
+    const kick = () => {
+      idleFrames = 0;
+      if (!raf) raf = requestAnimationFrame(tick);
+    };
+    const onResize = () => { measure(); kick(); };
+    measure();
     updateFocusScales();
-    container.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    const t = setTimeout(updateFocusScales, 200);
+    container.addEventListener('scroll', kick, { passive: true });
+    container.addEventListener('touchstart', kick, { passive: true });
+    window.addEventListener('resize', onResize);
+    const t = setTimeout(() => { measure(); updateFocusScales(); }, 200);
     return () => {
-      container.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      container.removeEventListener('scroll', kick);
+      container.removeEventListener('touchstart', kick);
+      window.removeEventListener('resize', onResize);
       clearTimeout(t);
       if (raf) cancelAnimationFrame(raf);
     };
@@ -372,7 +441,7 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     if (!footer) return;
 
     const isTouch = document.documentElement.classList.contains('touch-ui');
-    const SWIPE_THRESHOLD = 40;
+    const PEEK = 280;
 
     let bandPointerId = null;
     let bandStartX = 0;
@@ -420,19 +489,68 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
     let swipePointerId = null;
     let swipeStartX = 0;
     let swipeStartY = 0;
-    let swipeResolved = false;
+    let axis = null;
+    let sheetDragging = false;
+    let sheetStartOffset = 0;
+    let lastY = 0;
+    let lastT = 0;
+    let velY = 0;
 
-    const resolveVerticalSwipe = (dx, dy, event) => {
-      if (swipeResolved) return;
-      if (Math.abs(dy) <= SWIPE_THRESHOLD && Math.abs(dx) <= SWIPE_THRESHOLD) return;
-      if (Math.abs(dx) > Math.abs(dy)) {
-        swipeResolved = true;
+    const collapsedOffset = () => Math.max(1, footer.offsetHeight - PEEK);
+
+    const applySheetOffset = (y) => {
+      const max = collapsedOffset();
+      const clamped = Math.max(0, Math.min(max, y));
+      footer.style.transition = 'none';
+      footer.style.transform = 'translateY(' + clamped + 'px)';
+      return clamped;
+    };
+
+    const finishSheet = () => {
+      if (!sheetDragging) {
+        swipePointerId = null;
+        axis = null;
         return;
       }
-      swipeResolved = true;
+      const max = collapsedOffset();
+      const offset = parseFloat(footer.style.transform.replace(/[^\d.-]/g, '')) || 0;
+      const progress = 1 - offset / max;
+      const expand = velY < -0.45 ? true : velY > 0.45 ? false : progress > 0.38;
+      footer.style.transition = 'transform 0.62s cubic-bezier(0.32, 0.72, 0, 1)';
+      footer.style.transform = expand ? 'translateY(0px)' : 'translateY(' + max + 'px)';
+      const settle = () => {
+        footer.style.transition = '';
+        footer.style.transform = '';
+        footer.removeEventListener('transitionend', settle);
+      };
+      footer.addEventListener('transitionend', settle);
+      setIsExpanded(expand);
+      sheetDragging = false;
+      swipePointerId = null;
+      axis = null;
+      velY = 0;
+    };
+
+    const onSheetMove = (clientX, clientY, event) => {
+      const dx = clientX - swipeStartX;
+      const dy = clientY - swipeStartY;
+      if (!axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+        if (axis === 'y') {
+          sheetDragging = true;
+          sheetStartOffset = footer.classList.contains('is-expanded') ? 0 : collapsedOffset();
+          lastY = clientY;
+          lastT = performance.now();
+        }
+      }
+      if (axis !== 'y') return;
       if (event && event.cancelable) event.preventDefault();
-      if (dy < 0) setIsExpanded(true);
-      else if (dy > 0) setIsExpanded(false);
+      const now = performance.now();
+      velY = (clientY - lastY) / Math.max(1, now - lastT);
+      lastY = clientY;
+      lastT = now;
+      applySheetOffset(sheetStartOffset + dy);
     };
 
     const onFooterPointerDown = (event) => {
@@ -440,12 +558,14 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
       swipePointerId = event.pointerId;
       swipeStartX = event.clientX;
       swipeStartY = event.clientY;
-      swipeResolved = false;
+      axis = null;
+      sheetDragging = false;
+      velY = 0;
     };
 
     const onFooterPointerMove = (event) => {
       if (event.pointerId !== swipePointerId) return;
-      resolveVerticalSwipe(event.clientX - swipeStartX, event.clientY - swipeStartY, event);
+      onSheetMove(event.clientX, event.clientY, event);
     };
 
     const onFooterTouchMove = (event) => {
@@ -455,23 +575,19 @@ window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, 
         swipePointerId = 'touch';
         swipeStartX = touch.clientX;
         swipeStartY = touch.clientY;
-        swipeResolved = false;
+        axis = null;
+        sheetDragging = false;
       }
-      const dx = touch.clientX - swipeStartX;
-      const dy = touch.clientY - swipeStartY;
-      if (Math.abs(dy) > Math.abs(dx) && event.cancelable) event.preventDefault();
-      resolveVerticalSwipe(dx, dy, event);
+      onSheetMove(touch.clientX, touch.clientY, event);
     };
 
     const onFooterPointerUp = (event) => {
       if (event.pointerId !== swipePointerId && swipePointerId !== 'touch') return;
-      swipePointerId = null;
-      swipeResolved = false;
+      finishSheet();
     };
 
     const onFooterTouchEnd = () => {
-      swipePointerId = null;
-      swipeResolved = false;
+      finishSheet();
     };
 
     footer.addEventListener('pointerdown', onFooterPointerDown, true);
