@@ -58,6 +58,14 @@
   pointer-events: none;
 }
 .filter-topbar > * { pointer-events: auto; }
+body.comic-is-open .filter-topbar,
+body.blog-drawer-open .filter-topbar,
+body.comic-is-open .filter-drawer,
+body.blog-drawer-open .filter-drawer {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .search-combo {
   position: relative;
@@ -1291,16 +1299,20 @@
     padding: 6px 12px;
   }
   .popover-image-container {
-    height: 28vh;
-    max-height: 220px;
+    height: 38vh;
+    max-height: 300px;
   }
   .popover-title-enhanced {
     font-size: 1.5rem;
     margin: 18px 20px 8px;
   }
   .popover-body-enhanced {
-    font-size: 0.8125rem;
+    font-size: 1.0625rem;
+    line-height: 1.7;
     margin: 0 16px 14px;
+  }
+  .popover-body-enhanced p:first-child::first-letter {
+    font-size: 3.25rem;
   }
   .hex-cluster-sheet {
     max-height: min(70vh, 640px);
