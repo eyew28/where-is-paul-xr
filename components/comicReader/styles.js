@@ -424,9 +424,6 @@ const getDeviceStyles = (deviceType, state = {}) => {
   const flipbookStyle = getFlipbookStyle(deviceType, orientation, showCover, isLoading, isFullscreen);
 
   const hideButtons = isVideoPlaying || isSlidesSwitching;
-  // On mobile flipbook: hide close with nav until user taps page
-  const hideMobileHeader = isMobile && !showCover && !showMobileControls;
-  // Close button styles (high z-index and pointer-events so it's clickable above filter when overlay has pointer-events: none)
   const closeButtonStyle = isMobile ? {
     position: 'fixed',
     top: '20px',
@@ -443,13 +440,13 @@ const getDeviceStyles = (deviceType, state = {}) => {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10005,
-    pointerEvents: (hideButtons || hideMobileHeader) ? 'none' : 'auto',
+    pointerEvents: 'auto',
     transition: 'all 0.2s ease',
     fontWeight: 'bold',
     backdropFilter: 'blur(10px)',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-    opacity: (hideButtons || hideMobileHeader) ? 0 : 1,
-    visibility: (hideButtons || hideMobileHeader) ? 'hidden' : 'visible'
+    opacity: 1,
+    visibility: 'visible'
   } : {
     position: 'absolute',
     top: '5px',
