@@ -95,3 +95,4 @@ components/comicReader/STYLE_SPEC.md
 
 # Authoring notes; the site loads moments.js and content.html
 moments/**/*.md
+moments/**/raw/
