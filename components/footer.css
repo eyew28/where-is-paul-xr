@@ -69,7 +69,7 @@
   --entry-gap: 64px;
   --img-h: 310px;
   --img-h-comic: 310px;
-  --img-h-mobile: 210px;
+  --img-h-mobile: 280px;
   --rail-row: 20px;
   --node-h: 52px;
   --radius: 10px;
@@ -77,7 +77,7 @@
   --transition: 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 
   /* — new: touch chrome geometry (consumed by T5/T7) — */
-  --touch-peek: calc(56px + env(safe-area-inset-bottom, 0px));
+  --touch-peek: calc(var(--img-h) + var(--node-h) + 116px + env(safe-area-inset-bottom, 0px));
   --touch-era-band: 44px;
   --touch-pin: 56px;
 }
@@ -119,43 +119,25 @@ html:not(.touch-ui) .wip-footer:focus-within {
 .wip-footer > * { pointer-events: auto; }
 
 /* ------------------------------------------------------------------
-   TOUCH UI  (peek-only footer — no hover-expand on touch)
-   Era strip always visible at 44px; cards revealed only via .is-expanded
-   (toggled by Task 6 JS). Sticky :hover on iOS Safari is neutralized by
-   the html:not(.touch-ui) gates above + the overrides below.
+   TOUCH UI  (peek 280px so card tops aren’t clipped; swipe up to expand)
+   Desktop stack: cards, then years, then eras. Sticky :hover on iOS
+   Safari is neutralized by the html:not(.touch-ui) gates above + the
+   overrides below.
    ------------------------------------------------------------------ */
 html.touch-ui .wip-footer {
-  transform: translateY(calc(100% - var(--touch-peek)));
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 14px;
+  overflow: visible;
+  transform: translateY(calc(100% - 280px));
 }
 html.touch-ui .wip-footer:hover,
 html.touch-ui .wip-footer:focus-within {
-  transform: translateY(calc(100% - var(--touch-peek)));
+  transform: translateY(calc(100% - 280px));
 }
 html.touch-ui .wip-footer.is-expanded {
   transform: translateY(0);
-  max-height: 100svh;
-  overflow: hidden;
-}
-html.touch-ui .wip-footer.is-expanded .timeline-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-/* Landscape on coarse-pointer devices: cap the peek so the globe keeps
-   at least ~50% of 100dvh. Show era band (44px) + safe-area only —
-   no extra card sliver.  (#globeViz uses 100dvh; do not switch to 100svh.) */
-@media (pointer: coarse) and (orientation: landscape) {
-  html.touch-ui .wip-footer {
-    /* Keep era band 44px + safe-area only. Do not show extra card sliver. */
-    transform: translateY(calc(100% - var(--touch-era-band) - env(safe-area-inset-bottom, 0px)));
-  }
-  /* Sticky hover / focus must NOT re-expand in landscape */
-  html.touch-ui .wip-footer:hover,
-  html.touch-ui .wip-footer:focus-within {
-    transform: translateY(calc(100% - var(--touch-era-band) - env(safe-area-inset-bottom, 0px)));
-  }
 }
 
 /* Belt-and-suspenders: if the device advertises (hover: none) but the
@@ -172,76 +154,133 @@ html.touch-ui .wip-footer.is-expanded .timeline-scroll {
   }
 }
 
-html.touch-ui .era-minimap {
-  padding: 6px 8px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  gap: 4px;
-  touch-action: none;
-}
-html.touch-ui .wip-footer.is-expanded .era-minimap {
-  padding-top: 12px;
-}
-html.touch-ui .era-minimap:hover,
-html.touch-ui .era-minimap:focus-within {
-  padding: 6px 8px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  gap: 4px;
+html.touch-ui .timeline-scroll {
+  padding-top: 72px;
+  padding-bottom: 8px;
 }
 
-html.touch-ui .era-band {
-  height: var(--touch-era-band);
-  gap: 3px;
-  border-radius: 8px;
+html.touch-ui .era-minimap {
+  max-height: none;
+  opacity: 1;
+  padding: 4px 0 env(safe-area-inset-bottom, 0px);
+  overflow: visible;
+  pointer-events: auto;
+  gap: 14px;
+  touch-action: auto;
 }
-html.touch-ui .era-minimap:hover .era-band,
-html.touch-ui .era-minimap:focus-within .era-band {
-  height: var(--touch-era-band);
-  gap: 3px;
-  border-radius: 8px;
+
+html.touch-ui .era-playhead {
+  display: block;
+}
+html.touch-ui .era-playhead__year {
+  display: none;
+}
+html.touch-ui .wip-footer.is-expanded .era-playhead {
+  display: none;
 }
 
 html.touch-ui .era-ticks {
-  height: 28px;
-  overflow: visible;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  height: auto;
+  min-height: 44px;
   opacity: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
   pointer-events: auto;
-  font-size: 0.6875rem;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 1.25rem;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+html.touch-ui .era-ticks::-webkit-scrollbar { display: none; }
+
+html.touch-ui .era-tick {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font-size: 1.25rem;
+  font-weight: 700;
   line-height: 1;
 }
-html.touch-ui .era-minimap:hover .era-ticks,
-html.touch-ui .era-minimap:focus-within .era-ticks {
-  height: 28px;
-  overflow: visible;
-  opacity: 1;
-  pointer-events: auto;
+html.touch-ui .era-tick::after {
+  width: 2px;
+  height: 8px;
 }
+
+html.touch-ui .era-band-wrap {
+  max-height: none;
+  opacity: 1;
+  overflow: visible;
+  pointer-events: auto;
+  padding: 0 12px;
+}
+html.touch-ui .era-playhead {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+html.touch-ui .era-band {
+  height: 8px;
+  min-height: 8px;
+  gap: 2px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+html.touch-ui .wip-footer.is-expanded .era-band {
+  height: auto;
+  min-height: 48px;
+  gap: 8px;
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  scrollbar-width: none;
+}
+html.touch-ui .era-band::-webkit-scrollbar { display: none; }
 
 html.touch-ui .era-seg {
-  font-size: 0.5rem;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+html.touch-ui .era-seg__label,
+html.touch-ui .era-seg__years {
+  display: none;
+}
+html.touch-ui .wip-footer.is-expanded .era-seg {
+  flex: 0 0 auto;
+  min-width: max-content;
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  overflow: visible;
+}
+html.touch-ui .wip-footer.is-expanded .era-seg__label,
+html.touch-ui .wip-footer.is-expanded .era-seg__years {
+  display: block;
+  opacity: 1;
+  position: relative;
+  z-index: 1;
+}
+html.touch-ui .wip-footer.is-expanded .era-seg__label {
+  font-size: 0.75rem;
+}
+html.touch-ui .wip-footer.is-expanded .era-seg__years {
+  font-size: 0.625rem;
+  font-weight: 500;
   letter-spacing: 0.02em;
-  padding: 0 2px;
-}
-html.touch-ui .era-seg__label {
-  opacity: 1;
-  font-size: 0.5rem;
-}
-html.touch-ui .era-minimap:hover .era-seg__label,
-html.touch-ui .era-minimap:focus-within .era-seg__label,
-html.touch-ui .era-minimap:hover .era-seg__years,
-html.touch-ui .era-minimap:focus-within .era-seg__years {
-  opacity: 1;
+  opacity: 0.75;
 }
 
-html.touch-ui .era-minimap:hover .era-playhead,
-html.touch-ui .era-minimap:focus-within .era-playhead {
-  width: 12px;
-  height: 12px;
-  top: 50%;
-  bottom: auto;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border-width: 2px;
-  box-shadow: 0 0 0 2px rgba(10, 10, 12, 0.75), 0 0 14px rgba(255, 165, 0, 0.9);
+html.touch-ui .tl-entry__date {
+  font-size: 1.125rem;
 }
 
 /* Hide footer when comic is open / blog drawer open */
@@ -905,8 +944,8 @@ html:not(.touch-ui) .era-minimap:focus-within .era-playhead {
    ------------------------------------------------------------------ */
 @media (max-width: 640px) {
   :root {
-    --entry-w: 140px;
-    --entry-w-comic: 154px;
+    --entry-w: 176px;
+    --entry-w-comic: 190px;
     --img-h: var(--img-h-mobile);
     --img-h-comic: var(--img-h-mobile);
     --fs-year: 1.25rem;
