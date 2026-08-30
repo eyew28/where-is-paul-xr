@@ -84,6 +84,13 @@
       photo(W + '/2/2a/Raouche_Rocks_Beirut.jpg', 'Raouché rocks', 'Wikimedia Commons'),
       photo(W + '/0/0b/Beirut_downtown.jpg', 'Downtown Beirut', 'Wikimedia Commons')
     ],
+    'baalbek-2023-08-09': [
+      photo('https://commons.wikimedia.org/wiki/Special:FilePath/Lebanon,_Baalbek,_Temple_of_Bacchus.jpg?width=1280', 'Temple of Bacchus', 'Vyacheslav Argenberg (CC BY 4.0)'),
+      photo('https://commons.wikimedia.org/wiki/Special:FilePath/Baalbeck_Temple.jpg?width=1280', 'Temple of Jupiter columns', 'Paul Saad (CC BY-SA 4.0)'),
+      photo('https://commons.wikimedia.org/wiki/Special:FilePath/Temple_of_Jupiter,_North_wall,_Baalbek_20176.JPG?width=1280', 'Jupiter platform wall', 'Lodo27 (CC BY-SA 3.0)'),
+      photo(W + '/a/a2/Baalbek-stoneofpregnantwoman.jpg', 'Stone of the Pregnant Woman', 'Ralph Ellis'),
+      photo('https://commons.wikimedia.org/wiki/Special:FilePath/Lebanon,_Baalbek,_Temple_of_Bacchus_2.jpg?width=1280', 'Temple of Bacchus', 'Vyacheslav Argenberg (CC BY 4.0)')
+    ],
     'athens-2023-08-18': [
       photo(W + '/a/a1/Acropolis_of_Athens_013.JPG', 'The Acropolis', 'Wikimedia Commons'),
       photo(W + '/d/da/Parthenon_from_west.jpg', 'The Parthenon', 'Wikimedia Commons'),
