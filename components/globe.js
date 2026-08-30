@@ -1,4 +1,61 @@
-window.MomentRevealOverlay = ({ title, snippet, fullLink, onClose, id, image, imageAlt, isComic, carouselDir, overlayRef, onOpenPost }) => {
+window.MomentRevealOverlay = ({ title, snippet, fullLink, onClose, id, image, imageAlt, isComic, carouselDir, overlayRef, onOpenPost, gallery }) => {
+  const [photoIdx, setPhotoIdx] = React.useState(0);
+  React.useEffect(function () { setPhotoIdx(0); }, [id]);
+
+  const photos = (!isComic && gallery && gallery.length)
+    ? gallery
+    : (image ? [{ src: image, alt: imageAlt || title, credit: '' }] : []);
+  const current = photos.length ? (photos[Math.min(photoIdx, photos.length - 1)] || photos[0]) : null;
+  const showStrip = !isComic && photos.length > 1;
+
+  const media = current && React.createElement(
+    'div',
+    { className: 'popover-image-container' + (showStrip ? ' popover-image-container--gallery' : '') },
+    React.createElement('img', {
+      src: current.src,
+      alt: current.alt || imageAlt || title,
+      className: 'popover-image-enhanced',
+      onError: function (e) {
+        if (photos.length > 1) {
+          const next = (photoIdx + 1) % photos.length;
+          if (next !== photoIdx) setPhotoIdx(next);
+        }
+      }
+    }),
+    showStrip && React.createElement(
+      'div',
+      { className: 'popover-filmstrip' },
+      photos.slice(0, 5).map(function (photo, i) {
+        return React.createElement(
+          'button',
+          {
+            key: photo.src + i,
+            type: 'button',
+            className: 'popover-filmstrip-btn' + (i === photoIdx ? ' is-active' : ''),
+            onClick: function (e) {
+              e.stopPropagation();
+              setPhotoIdx(i);
+            },
+            'aria-label': photo.alt || ('Photo ' + (i + 1))
+          },
+          React.createElement('img', {
+            src: photo.src,
+            alt: '',
+            onError: function (err) {
+              var btn = err.target.closest('.popover-filmstrip-btn');
+              if (btn) btn.style.display = 'none';
+            }
+          })
+        );
+      })
+    ),
+    showStrip && current.credit && React.createElement(
+      'p',
+      { className: 'popover-filmstrip-credit' },
+      current.credit
+    )
+  );
+
   return React.createElement(
     'div',
     { className: 'popover-backdrop', onClick: onClose },
@@ -41,15 +98,7 @@ window.MomentRevealOverlay = ({ title, snippet, fullLink, onClose, id, image, im
             key: id,
             className: 'popover-content' + (carouselDir > 0 ? ' is-in-right' : carouselDir < 0 ? ' is-in-left' : '')
           },
-          image && React.createElement(
-            'div',
-            { className: 'popover-image-container' },
-            React.createElement('img', {
-              src: image,
-              alt: imageAlt || title,
-              className: 'popover-image-enhanced'
-            })
-          ),
+          media,
           React.createElement('h2', { className: 'popover-title-enhanced' }, title),
           snippet && React.createElement(
             'div',
@@ -1283,6 +1332,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
           mapLink: post.mapLink,
           mapText: post.mapText,
           location: post.location,
+          gallery: typeof window.collectMomentGallery === 'function' ? window.collectMomentGallery(post) : (post.gallery || []),
           travelLogComicLayout: useTravelLogComicLayout(post),
           isInteractive: isInteractiveEpisode(postId, post.title),
           isComic: isComicEpisode(postId, post.title)
@@ -1406,14 +1456,22 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     if (!m) return;
     const full = ((window.momentsInTime || []).find(x => x.id === m.id)) || m;
     setSelectedId(full.id);
+    const hero = resolveMomentImage(full);
+    let gallery = !full.isComic && typeof window.collectMomentGallery === 'function'
+      ? window.collectMomentGallery(full).slice()
+      : [];
+    if (hero && gallery.length) {
+      gallery[0] = Object.assign({}, gallery[0], { src: hero });
+    }
     setPopoverContent({
       title: full.title || full.timelineHighlight || '',
       snippet: full.snippet || '',
       fullLink: full.fullLink || '#',
       id: full.id,
-      image: resolveMomentImage(full),
+      image: hero,
       imageAlt: full.imageAlt || full.title,
-      isComic: !!full.isComic
+      isComic: !!full.isComic,
+      gallery: gallery
     });
     scrollTimelineToMoment(full.id);
     let path = full.fullLink;
@@ -2119,6 +2177,7 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       image: popoverContent.image,
       imageAlt: popoverContent.imageAlt,
       isComic: popoverContent.isComic,
+      gallery: popoverContent.gallery,
       carouselDir: carouselDir,
       overlayRef: popoverRef,
       onOpenPost: function(id) { handleOpenBlogPost(id, { skipCover: true }); }

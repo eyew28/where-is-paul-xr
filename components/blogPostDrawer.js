@@ -140,6 +140,41 @@ window.VisitMap = ({ html, location }) => {
   );
 };
 
+window.PostEraGallery = ({ photos }) => {
+  const items = (photos || []).slice(0, 5);
+  if (items.length < 2) return null;
+  return React.createElement(
+    'div',
+    { className: 'era-gallery' },
+    React.createElement('p', { className: 'era-gallery__label' }, 'From that time'),
+    React.createElement(
+      'div',
+      { className: 'era-gallery__track' },
+      items.map(function (photo, i) {
+        return React.createElement(
+          'figure',
+          { key: photo.src + i, className: 'era-gallery__frame' },
+          React.createElement('img', {
+            src: photo.src,
+            alt: photo.alt || '',
+            loading: 'lazy',
+            decoding: 'async',
+            onError: function (err) {
+              var frame = err.target.closest('.era-gallery__frame');
+              if (frame) frame.style.display = 'none';
+            }
+          }),
+          React.createElement(
+            'figcaption',
+            null,
+            [photo.alt, photo.credit].filter(Boolean).join(' — ')
+          )
+        );
+      })
+    )
+  );
+};
+
 window.BlogPostDrawer = ({ content, onClose }) => {
   const closeDrawer = () => {
     const postId = content && content.postId;

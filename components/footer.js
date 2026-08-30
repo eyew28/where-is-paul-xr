@@ -76,6 +76,36 @@ window.syncMinimapPlayhead = (container) => {
   }
 };
 
+window.resolveTimelineImg = (src) => {
+  if (!src) return '';
+  if (src.indexOf('attachment://') === 0) src = src.replace('attachment://', '');
+  if (/^(https?:)?\/\//.test(src) || src.indexOf('data:') === 0) return src;
+  return window.withBase ? window.withBase(src) : src;
+};
+
+window.collectMomentGallery = (moment) => {
+  const items = [];
+  const seen = {};
+  const push = (photo, fallbackAlt) => {
+    if (!photo) return;
+    const raw = typeof photo === 'string' ? photo : photo.src;
+    if (!raw) return;
+    const src = window.resolveTimelineImg(raw);
+    if (!src || seen[src]) return;
+    seen[src] = true;
+    items.push({
+      src: src,
+      alt: (typeof photo === 'string' ? fallbackAlt : photo.alt) || fallbackAlt || '',
+      credit: typeof photo === 'string' ? '' : (photo.credit || '')
+    });
+  };
+  if (moment && moment.image) {
+    push({ src: moment.image, alt: moment.imageAlt || moment.title, credit: moment.caption || '' }, moment.title);
+  }
+  (moment && moment.gallery ? moment.gallery : []).forEach((p) => push(p, moment.title));
+  return items;
+};
+
 window.Footer = ({ handleTimelineClick, selectedId, setSelectedId, selectedTag, selectedYear }) => {
   const [isExpanded, setIsExpanded] = React.useState(
     () => document.documentElement.classList.contains('touch-ui')
