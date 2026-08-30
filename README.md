@@ -79,7 +79,7 @@ Edit `moments/moments.js`. Replace the `window.momentsInTime` array with your st
   title: "Lisbon",
   date: new Date("2025-10-12T00:00:00Z"),
   timelineHighlight: "Lisbon",
-  tags: ["city"],
+  tags: ["travel"],
   snippet: "One paragraph. This is the card on the globe.",
   fullLink: "#",
   image: "/moments/lisbon/2025-10-12/image-thumb.webp",
@@ -91,6 +91,8 @@ Edit `moments/moments.js`. Replace the `window.momentsInTime` array with your st
 ```
 
 `stayDuration` is days. That number is the hex color: a few days stay bright orange, months go darker. Not height.
+
+`tags` drive the globe filter pills. This globe uses a closed set: `origins`, `family`, `tribe`, `volleyball`, `love`, `body`, `work`, `building`, `sovereignty`, `comic`, `nightlife`, `travel`. Swap the set when you swap the life.
 
 To drop my people, set `window.characters = []` in `characters/characters.js`.
 
@@ -136,7 +138,7 @@ Edit `characters/characters.js`. Each person:
   pageImage: "/characters/ada.webp",
   pageVideo: "/characters/ada.mp4",
   imageAlt: "Ada",
-  tags: ["friend"],
+  tags: ["tribe"],
   relationship: "How they sit in the story"
 }
 ```
