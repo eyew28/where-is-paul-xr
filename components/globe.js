@@ -305,7 +305,15 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
     return React.createElement('div', null, 'Error: Data not loaded');
   }
 
-  const regularTags = ["All", ...new Set(window.momentsInTime.flatMap(post => post.tags))];
+  const TAG_ORDER = ["origins", "family", "tribe", "volleyball", "love", "body", "work", "building", "sovereignty", "comic", "nightlife", "travel"];
+  const regularTags = ["All", ...[...new Set(window.momentsInTime.flatMap(post => post.tags))].sort((a, b) => {
+    const ia = TAG_ORDER.indexOf(a);
+    const ib = TAG_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return String(a).localeCompare(String(b));
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  })];
   const yearTags = ["All", ...new Set(window.momentsInTime.map(post => new Date(post.date).getUTCFullYear().toString()))].sort((a, b) => b - a);
   const [characters, setCharacters] = React.useState(window.characters || []);
   
