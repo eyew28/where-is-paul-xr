@@ -16,6 +16,7 @@
   <title>Where is Paul?</title>
   <script>
     (function () {
+      document.documentElement.classList.add('booting');
       var coarseMQ = window.matchMedia('(pointer: coarse)');
       document.documentElement.classList.toggle('touch-ui', coarseMQ.matches);
       coarseMQ.addEventListener('change', function (e) {
@@ -68,7 +69,19 @@
   <link rel="stylesheet" href="components/styles.css?v=20260828d">
   <link rel="stylesheet" href="components/blogPostDrawer.css?v=20260828a">
   <link rel="stylesheet" href="components/footer.css?v=20260829g">
-  <link rel="stylesheet" href="components/globe.css?v=20260828i">
+  <link rel="stylesheet" href="components/globe.css?v=20260830a">
+  <style>
+    html.booting, html.booting body { background: #050506; }
+    #boot-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050506;
+    }
+  </style>
 
   <!-- Service Worker Registration -->
   <script>
@@ -125,7 +138,124 @@
   </script>
 </head>
 <body>
- <div id="overlay" class="overlay">
+  <div id="boot-overlay" class="boot-overlay" role="status" aria-live="polite" aria-busy="true">
+    <div class="boot-overlay__stage">
+      <p class="boot-overlay__greeting" id="boot-greeting" lang="en">Hello.</p>
+      <span class="boot-overlay__rule" aria-hidden="true"></span>
+      <p class="boot-overlay__meta" id="boot-meta">English</p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var GREETINGS = [
+        { text: 'Hello.', lang: 'en', label: 'English' },
+        { text: 'Здравей.', lang: 'bg', label: 'Български' },
+        { text: 'สวัสดี', lang: 'th', label: 'ไทย' },
+        { text: 'Γεια σου.', lang: 'el', label: 'Ελληνικά' },
+        { text: 'Hola.', lang: 'es', label: 'Español' },
+        { text: 'Xin chào.', lang: 'vi', label: 'Tiếng Việt' },
+        { text: 'مرحبا', lang: 'ar', label: 'العربية' },
+        { text: 'Ciao.', lang: 'it', label: 'Italiano' },
+        { text: 'こんにちは', lang: 'ja', label: '日本語' },
+        { text: 'Bonjour.', lang: 'fr', label: 'Français' }
+      ];
+      var KEY = 'wip-greet-i';
+      var overlay = document.getElementById('boot-overlay');
+      var greetingEl = document.getElementById('boot-greeting');
+      var metaEl = document.getElementById('boot-meta');
+      var reduced = false;
+      try {
+        reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      } catch (e) {}
+
+      var index = 0;
+      try {
+        index = parseInt(localStorage.getItem(KEY), 10);
+        if (!isFinite(index) || index < 0) index = 0;
+        index = index % GREETINGS.length;
+      } catch (e) {
+        index = Math.floor(Math.random() * GREETINGS.length);
+      }
+      var greet = GREETINGS[index];
+      greetingEl.textContent = greet.text;
+      greetingEl.setAttribute('lang', greet.lang);
+      greetingEl.setAttribute('dir', greet.lang === 'ar' ? 'rtl' : 'ltr');
+      metaEl.textContent = greet.label;
+      try { localStorage.setItem(KEY, String(index + 1)); } catch (e) {}
+
+      var started = Date.now();
+      var minMs = reduced ? 500 : 1800;
+      var maxMs = 8000;
+      var dismissed = false;
+      var globeReady = false;
+
+      function globeLooksReady() {
+        if (window.__wipGlobeReady) return true;
+        var g = window.globeInstance;
+        if (!g) return false;
+        try {
+          var mat = typeof g.globeMaterial === 'function' ? g.globeMaterial() : null;
+          return !!(mat && mat.map && mat.map.image);
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function thumbsHavePainted() {
+        var imgs = document.querySelectorAll('.tl-entry img, .globe-photo-pin img');
+        if (!imgs.length) return false;
+        var ready = 0;
+        for (var i = 0; i < imgs.length; i++) {
+          if (imgs[i].complete) ready += 1;
+        }
+        return ready >= Math.min(3, imgs.length);
+      }
+
+      function canDismiss() {
+        if (Date.now() - started < minMs) return false;
+        if (!globeLooksReady() && !globeReady) return false;
+        if (document.readyState !== 'complete' && Date.now() - started < 4000) return false;
+        return true;
+      }
+
+      function dismiss() {
+        if (dismissed || !overlay) return;
+        dismissed = true;
+        overlay.classList.add('is-leaving');
+        overlay.setAttribute('aria-busy', 'false');
+        document.documentElement.classList.remove('booting');
+        setTimeout(function () {
+          if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        }, reduced ? 200 : 900);
+      }
+
+      function tick() {
+        if (dismissed) return;
+        if (Date.now() - started >= maxMs || (canDismiss() && (thumbsHavePainted() || Date.now() - started >= minMs + 700))) {
+          dismiss();
+          return;
+        }
+        setTimeout(tick, 120);
+      }
+
+      window.addEventListener('wip-globe-ready', function () {
+        globeReady = true;
+      });
+
+      overlay.addEventListener('click', function () {
+        if (Date.now() - started < 400) return;
+        dismiss();
+      });
+      overlay.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') dismiss();
+      });
+      overlay.setAttribute('tabindex', '-1');
+
+      tick();
+    })();
+  </script>
+
+  <div id="overlay" class="overlay">
     <div class="overlay-message" id="overlay-message"></div>
   </div>
   
@@ -160,7 +290,7 @@
   <script defer src="lib/leaflet.js"></script>
 
   <!-- Local Scripts -->
-  <script defer src="components/globe.js?v=20260828h"></script>
+  <script defer src="components/globe.js?v=20260830a"></script>
   <script defer src="components/blogPostDrawer.js?v=20260828a"></script>
   <script defer src="components/interactiveEpisodeDrawer.js"></script>
   <!-- Comic Reader Components (load in order) -->
@@ -174,7 +304,7 @@
   <script defer src="components/comicReader/render.js?v=20260828a"></script>
   <script defer src="components/comicReader.js?v=20260828f"></script>
   <script defer src="components/footer.js?v=20260829g"></script>
-  <script defer src="components/app.js?v=20260828b"></script>
+  <script defer src="components/app.js?v=20260830a"></script>
   <script defer src="components/episodeNavigation.js?v=20260828a"></script>
 
   <script>

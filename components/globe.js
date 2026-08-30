@@ -867,6 +867,11 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       window.applyGlobePixelRatio(globeInstance.current, document.getElementById('globeViz'));
       onZoomHandler();
 
+      const signalGlobeReady = function() {
+        if (window.__wipGlobeReady) return;
+        window.__wipGlobeReady = true;
+        window.dispatchEvent(new Event('wip-globe-ready'));
+      };
       const sharpenGlobeTexture = function() {
         const g = globeInstance.current;
         if (!g) return;
@@ -879,11 +884,16 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
         mat.map.needsUpdate = true;
         return true;
       };
-      if (!sharpenGlobeTexture()) {
+      if (sharpenGlobeTexture()) {
+        signalGlobeReady();
+      } else {
         let tries = 0;
         const waitForMap = setInterval(function() {
           tries += 1;
-          if (sharpenGlobeTexture() || tries > 40) clearInterval(waitForMap);
+          if (sharpenGlobeTexture() || tries > 40) {
+            clearInterval(waitForMap);
+            signalGlobeReady();
+          }
         }, 100);
       }
 
@@ -995,6 +1005,10 @@ window.GlobeComponent = ({ handleTimelineClick, selectedId, setSelectedId, selec
       };
     } catch (error) {
       console.error('Globe init failed', error);
+      if (!window.__wipGlobeReady) {
+        window.__wipGlobeReady = true;
+        window.dispatchEvent(new Event('wip-globe-ready'));
+      }
     }
   }, []);
 
