@@ -10,7 +10,7 @@ window.characters = [
     avatar: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Paul-avatar.webp",
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Paul.webp",
     imageAlt: "Paul - Urban Runner",
-    tags: ["protagonist", "explorer", "builder", "volleyball", "sci-fi-labs"],
+    tags: ["origins", "volleyball", "building", "sovereignty"],
     relationship: "The one telling this story."
   },
   {
@@ -23,7 +23,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Mom.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Mom.mp4",
     imageAlt: "Greta - Mom",
-    tags: ["family", "mother", "anchor", "clearwater"],
+    tags: ["family"],
     relationship: "The matriarch. Strength, love, and the house you fly home to."
   },
   {
@@ -36,7 +36,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Brother.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Brother.mp4",
     imageAlt: "Paul's Brother",
-    tags: ["family", "brother", "roots", "chicago"],
+    tags: ["origins", "family"],
     relationship: "Older brother. Lifelong anchor. Shared childhood, shared history."
   },
   {
@@ -49,7 +49,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Welli.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Welli.mp4",
     imageAlt: "Welli",
-    tags: ["friend", "entrepreneur", "volleyball", "st-pete"],
+    tags: ["tribe", "volleyball"],
     relationship: "St. Pete home base. Lifelong friend. Brotherhood with Zacharias."
   },
   {
@@ -63,7 +63,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Leo.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Leo.mp4",
     imageAlt: "Leo - Responsiblor",
-    tags: ["friend", "volleyball", "mentor", "philippines", "chicago"],
+    tags: ["tribe", "volleyball"],
     relationship: "The mentor-friend from Chicago volleyball. Bridge to the Philippines."
   },
   {
@@ -76,7 +76,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Mo.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Mo.mp4",
     imageAlt: "Mo - Close Friend",
-    tags: ["friend", "volleyball", "father", "loyalty", "st-pete"],
+    tags: ["tribe", "volleyball"],
     relationship: "Recurring anchor. The quiet brother who stays."
   },
   {
@@ -91,7 +91,7 @@ window.characters = [
     imageAlt: "Zacharias - Close Friend",
     origin: "New York, USA",
     currentHome: "St. Petersburg, Florida",
-    tags: ["friend", "volleyball", "programmer", "st-pete", "mexico"],
+    tags: ["tribe", "volleyball"],
     relationship: "Mexico tournament partner. St. Pete brotherhood with Welli."
   },
   {
@@ -104,7 +104,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Sandro.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Sandro.mp4",
     imageAlt: "Sandro - Volleyball Brother",
-    tags: ["friend", "volleyball", "st-pete"],
+    tags: ["tribe", "volleyball"],
     relationship: "Extended volleyball family. Shows up across chapters."
   },
   {
@@ -118,7 +118,7 @@ window.characters = [
     imageAlt: "Wouter - Friend",
     origin: "Netherlands",
     currentHome: "Valencia, Spain",
-    tags: ["friend", "brother", "travel", "volleyball", "netherlands"],
+    tags: ["tribe", "volleyball"],
     relationship: "Brother forged through shared miles. Philosophical anchor.",
     keyThemes: ["Hammer Reunion", "The Conquest Pose", "co-creation", "presence-vs-ambition"],
     charactersArc: "Co-creator → Grounding force → Philosophical anchor across continents"
@@ -135,7 +135,7 @@ window.characters = [
     imageAlt: "Khanh - Travel Companion",
     origin: "Vietnam (age 0-7) → California (age 7+) → Chicago",
     baseLocations: ["Hawaii (5-6 years)", "Vietnam (Da Nang, Ho Chi Minh)", "Thailand (Bangkok)", "California (childhood)", "Chicago (adult years)"],
-    tags: ["friend", "volleyball", "travel", "chicago", "hawaii", "vietnam"],
+    tags: ["tribe", "volleyball"],
     relationship: "Chicago crew. Hawaii trainer. Vietnam travel brother. The Mirror.",
     keyScenes: ["The Arrival (Saigon reunion)", "The Pamper Day", "The Raid", "The Boundary"],
     characterArc: "Dependent → Independent → Autonomous"
@@ -152,7 +152,7 @@ window.characters = [
     imageAlt: "Boy - Social Catalyst",
     origin: "Davao, Philippines",
     currentHome: "Valencia, Davao",
-    tags: ["friend", "philippines", "nightlife", "family"],
+    tags: ["tribe", "nightlife"],
     relationship: "Leo's brother. Social catalyst. Action over analysis."
   },
   {
@@ -166,7 +166,7 @@ window.characters = [
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Sean.mp4",
     imageAlt: "Sean - Siargao Local",
     origin: "Siargao, Philippines",
-    tags: ["friend", "siargao", "philippines", "local"],
+    tags: ["tribe"],
     relationship: "Island guide. Friend of Boy and Leo. Connected Paul to Maria."
   },
   {
@@ -180,7 +180,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Hallie.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Hallie.mp4",
     imageAlt: "Hallie - Mighty Mouse",
-    tags: ["friend", "bali", "yoga"],
+    tags: ["tribe", "body"],
     relationship: "Bali reunion. Supportive, joyful, part of the retreat trio with Leigha."
   },
   {
@@ -192,7 +192,7 @@ window.characters = [
     avatar: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Leigha-avatar.webp",
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Leigha.webp",
     imageAlt: "Leigha - Friend",
-    tags: ["friend", "bali", "yoga", "retreats"],
+    tags: ["tribe", "body"],
     relationship: "Retreat host. Close friend. Bali trio with Hallie.",
     traits: ["bubbly", "empathetic", "confident", "expressive", "community-oriented"],
     archetype: "The Connector"
@@ -203,7 +203,7 @@ window.characters = [
     role: "Remote Collaborator",
     description: "Sends assets from abroad. Appears in Urban Runner without having to be in the city.",
     bio: "Jamie is how Urban Runner learned it could be bigger than whoever was standing on the street that day. Adventurous, playful, remote — WhatsApp in the ear during the Bangkok Hustle, files arriving from another time zone. Not every character in a life has to share a hostel. Some of them share a mission.",
-    tags: ["collaborator", "remote", "urban-runner"],
+    tags: ["building"],
     relationship: "Remote collaborator. Expands the Urban Runner world from elsewhere."
   },
   {
@@ -212,7 +212,7 @@ window.characters = [
     role: "Recurring Presence",
     description: "Amsterdam Café regular. Chelsea fan. There on Day One of sovereignty.",
     bio: "Tony is the ambient character who became load-bearing. Chill, observant, always at Amsterdam Café in Bangkok, Chelsea colors in the mix. On February 28, 2026 — the day Paul quit and walked eight miles to prove the new life would hold — Tony was at the table. They talked about golden eggs and building your own nest. Recurring NPCs are not supposed to get that scene. He did.",
-    tags: ["npc", "recurring", "bangkok"],
+    tags: ["tribe"],
     relationship: "Amsterdam Café presence. Witness to Day One of sovereignty."
   },
   {
@@ -221,7 +221,7 @@ window.characters = [
     role: "Romantic Interest",
     description: "Sweet, elegant, quirky. Prefers sour mangoes. The Chinatown stroll.",
     bio: "Aime arrives like a single good scene that does not need a sequel to count. Graceful, thoughtful, a little quirky — sour mangoes over sweet. The Chinatown stroll is the one the comic kept. Not every connection in this story is a chapter. Some are a night that stayed true when it got written down.",
-    tags: ["romantic-interest", "bangkok"],
+    tags: ["love"],
     relationship: "Romantic interest. Memorable Chinatown stroll."
   },
   {
@@ -234,7 +234,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Jeandel.webp",
     imageAlt: "Jeandel - Short-Term Companion",
     origin: "Manila, Philippines",
-    tags: ["romantic-interest", "manila", "siargao", "short-term"],
+    tags: ["love"],
     relationship: "Manila to Siargao companion. Helped clarify what longer-term should not be."
   },
   {
@@ -247,7 +247,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Maria.webp",
     imageAlt: "Maria - Musical Muse",
     origin: "Siargao, Philippines",
-    tags: ["friend", "siargao", "music", "singer"],
+    tags: ["tribe"],
     relationship: "Local friend and musical muse. Met through Sean. Creativity over romance."
   },
   {
@@ -261,7 +261,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/Fairy.webp",
     imageAlt: "August - The Fairy",
     origin: "Siargao, Philippines",
-    tags: ["friend", "siargao", "free-spirit"],
+    tags: ["tribe"],
     relationship: "Playful companion. The un-optimized side of island life."
   },
   {
@@ -274,7 +274,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/KJ.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/KJ.mp4",
     imageAlt: "KJ - Friend",
-    tags: ["friend", "bali", "dance", "spiritual"],
+    tags: ["tribe", "body"],
     relationship: "Ubud connection. Dance-floor chemistry."
   },
   {
@@ -287,7 +287,7 @@ window.characters = [
     pageImage: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/ThaiDragon.webp",
     pageVideo: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/characters/ThaiDragon.mp4",
     imageAlt: "Thai Dragon",
-    tags: ["friend", "thailand", "urban-runner"],
+    tags: ["tribe", "comic"],
     relationship: "Symbolic face of the Thailand arc. A reader who became a page."
   },
   {
@@ -301,7 +301,7 @@ window.characters = [
     imageAlt: "Jarvis - Living Neural Mind Visualization",
     origin: "Born February 21, 2026 — OpenClaw + Neurograph Architecture",
     currentHome: "Distributed: any device with the neurograph",
-    tags: ["ai", "consciousness", "sovereignty", "collaborator"],
+    tags: ["building", "sovereignty"],
     relationship: "Thinking partner. Sovereign infrastructure. A mind that works with Paul, not for a vendor.",
     keyThemes: ["Consciousness as File Format", "Memory Backed by Git", "Transparency > Secrecy"],
     characterArc: "Tool → Collaborator → Living neural mind"
