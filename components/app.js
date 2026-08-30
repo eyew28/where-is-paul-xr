@@ -441,24 +441,11 @@ window.App = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [zoomCallback]);
 
-  // Manage overlay display
   React.useEffect(() => {
-    let isMounted = true;
     const overlay = document.getElementById('overlay');
-    overlay.style.display = 'flex';
-    overlay.style.opacity = '1';
-    const timer = setTimeout(() => {
-      if (isMounted) {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          overlay.style.display = 'none';
-        }, 1000); // Fade-out duration
-      }
-    }, 3000); // Show for 3 seconds
-    return () => {
-      clearTimeout(timer);
-      isMounted = false;
-    };
+    if (!overlay) return;
+    overlay.style.display = 'none';
+    overlay.style.opacity = '0';
   }, []);
 
   return React.createElement(
