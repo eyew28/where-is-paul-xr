@@ -1294,6 +1294,7 @@ window.momentsInTime = [
     contentFile: "/moments/chicago/2025-10-01/content.html",
     location: { lat: 41.8781, lng: -87.6298, name: "Chicago, Illinois" },
     stayDuration: 5,
+    360: true,
     formattedDuration: formatDuration(5)
   },
   {
