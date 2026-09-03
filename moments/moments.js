@@ -77,13 +77,14 @@ window.momentsInTime = [
     timelineHighlight: "Chicago Life",
     tags: ["origins", "volleyball", "love"],
     snippet: "Transferred to Gordon Tech, graduated high school, attended college, met my ex-wife, and started my volleyball journey at 18 - a transformative decade in the Windy City.",
-    image: "https://pub-9466bb5132e74aeba333004ad0c21f21.r2.dev/moments/images/chicago-2005-02-01.jpg",
+    image: "/moments/chicago/2005-02-01/chicago-bridge.jpg",
     imageAlt: "Chicago: High School, College & Volleyball Beginnings",
     caption: "Chicago, Illinois — Photo: Dough4872 (CC BY-SA 4.0)",
     fullLink: "/moments/chicago/2005-02-01",
     contentFile: "/moments/chicago/2005-02-01/content.html",
     location: { lat: 41.8781, lng: -87.6298, name: "Chicago, Illinois" },
     stayDuration: 3650,
+    360: true,
     formattedDuration: formatDuration(3650)
   },
   {
