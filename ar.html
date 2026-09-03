@@ -1,0 +1,1115 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js xr - globe</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<meta property="og:title" content="VR World Map">
+		<meta property="og:type" content="website">
+		<meta property="og:url" content="https://threejs.org/examples/webxr_xr_cubes.html">
+		<meta property="og:image" content="https://threejs.org/examples/screenshots/webxr_xr_cubes.jpg">
+		<link type="text/css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/three@0.185.0/examples/main.css">
+		<!-- Blocking (not defer/module) so window.momentsInTime exists before the
+		     module script below runs. Cache-busted like index.html's own script
+		     tags, since without it browsers can keep serving a stale copy after
+		     moments.js changes. -->
+		<script src="moments/moments.js?v=20260901a"></script>
+	</head>
+	<body>
+
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> xr - globe
+		</div>
+
+		<!-- Temporary calibration tool: globe.glb's own lat/lng alignment isn't
+		     known, so this lets it be tuned by eye against the pin. Hidden while
+		     presenting in XR; not part of the final experience. -->
+		<div id="pin-calibration" style="position:fixed; top:12px; right:12px; z-index:20; background:rgba(0,0,0,0.75); color:#fff; font:12px/1.4 monospace; padding:10px 12px; border-radius:6px;">
+			<div style="font-weight:bold; margin-bottom:6px;">Pin calibration</div>
+			<label>Lng offset <input id="cal-lng" type="number" step="1" style="width:60px"></label><br>
+			<label>Lat offset <input id="cal-lat" type="number" step="1" style="width:60px"></label><br>
+			<label><input id="cal-flip" type="checkbox"> Flip E/W</label><br>
+			<button id="cal-reset" type="button" style="margin-top:6px;">Reset</button>
+			<pre id="cal-readout" style="margin-top:8px; white-space:pre-wrap; user-select:text;"></pre>
+		</div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three';
+
+			import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
+			import { XRButton } from 'three/addons/webxr/XRButton.js';
+			import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+			const timer = new THREE.Timer();
+			timer.connect( document );
+
+			let container;
+			let camera, scene, renderer;
+
+			let room, globe, pickSphere, pinsGroup;
+			let globeRadius; // set once in init(), used for pin placement
+
+			const pins = []; // { mesh, lat, lng }
+
+			// globe.glb's own lat/lng alignment (which local direction is the prime
+			// meridian, equator seam, etc.) isn't documented, so pin placement is
+			// calibrated by eye against the calibration panel rather than assumed.
+			const DEFAULT_PIN_CALIBRATION = { lngOffsetDeg: 90, latOffsetDeg: 0, flipLng: false };
+			const PIN_CALIBRATION = { ...DEFAULT_PIN_CALIBRATION };
+			const CAL_STORAGE_KEY = 'vrPinCalibration';
+			const PIN_UP = new THREE.Vector3( 0, 1, 0 );
+
+			const controllers = []; // both hands, so either can grab the globe
+
+			// Rotation state shared by the mouse-drag (desktop) and controller-grab
+			// (VR) interactions below - both spin the same `globe` group and feed
+			// the same inertia model so a flick keeps it spinning after release.
+			let autoRotate = true;
+			const liveVelocity = new THREE.Vector2(); // (yaw, pitch) rad/s, while actively dragging/grabbing
+			const coastVelocity = new THREE.Vector2(); // velocity captured at the moment of release
+			let coastElapsed = 0;
+			const COAST_DURATION = 3; // seconds to ease the coast down to a stop
+
+			let isMouseDragging = false;
+			const pointerPrev = new THREE.Vector2();
+			let pointerPrevTime = 0;
+			const pointerNDC = new THREE.Vector2();
+
+			let grabbingController = null;
+			const dragRaycaster = new THREE.Raycaster();
+
+			// Distinguishes a click on a pin (open its card panel) from the start of
+			// a drag that happens to begin on top of one - resolved by how far the
+			// pointer/controller has moved by the time it's released.
+			const CLICK_MOVE_THRESHOLD_PX = 6;
+			const CLICK_MOVE_THRESHOLD_M = 0.03;
+			let pendingPinClick = null;
+			const pointerDownPos = new THREE.Vector2();
+			let pendingPinClickController = null;
+			const controllerSelectStartPos = new THREE.Vector3();
+
+			// Card UI - a canvas-textured panel billboarded to face the viewer,
+			// showing either the list of moments at a clicked pin or one moment's
+			// detail. Clickable regions are tracked in canvas-pixel space and hit
+			// via the UV coordinate three.js reports from the panel raycast.
+			let activePanel = null; // { mode: 'list'|'detail', location, moment }
+			const panelHitRegions = [];
+			const imageCache = new Map();
+			let panelCanvas, panelCtx, panelTexture, panelGroup, panelMesh;
+			const PANEL_CANVAS_WIDTH = 1024;
+			const PANEL_CANVAS_HEIGHT = 640;
+			const PANEL_WORLD_WIDTH = 1.0; // meters
+			const PANEL_WORLD_HEIGHT = PANEL_WORLD_WIDTH * ( PANEL_CANVAS_HEIGHT / PANEL_CANVAS_WIDTH );
+			const PANEL_DISTANCE = 0.85; // meters in front of the viewer when opened (1.0 - ~6in)
+
+			init();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x000008 );
+
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
+				camera.position.set( 0, 1.6, 3 );
+				scene.add( camera );
+
+				room = new THREE.LineSegments(
+					new BoxLineGeometry( 6, 6, 6, 10, 10, 10 ).translate( 0, 3, 0 ),
+					new THREE.LineBasicMaterial( { color: 0xbcbcbc } )
+				);
+				scene.add( room );
+
+				scene.add( new THREE.HemisphereLight( 0xa5a5a5, 0x898989, 3 ) );
+
+				const light = new THREE.DirectionalLight( 0xffffff, 3 );
+				light.position.set( 1, 1, 1 ).normalize();
+				scene.add( light );
+
+				// Pre-authored globe model (matches the one shown on the main site).
+				// Placed off the room's center and away from head height: in XR the
+				// camera pose comes from the headset's tracked position in the
+				// "local-floor" reference space, which usually lands close to world
+				// origin - a globe centered there ends up wrapped around the viewer's
+				// head, and default single-sided materials render nothing from inside.
+				const DESIRED_DIAMETER = 1.8; // meters (2.4 * 0.75 - sized back down for a comfortable VR view)
+
+				globe = new THREE.Group();
+				globe.position.set( 0, 1.5, - 1.8 );
+				scene.add( globe );
+
+				// globe.glb is built entirely from LineSegments (graticule + coastline
+				// wireframe), so a ray almost always passes through the gaps between
+				// lines. Grab/click detection instead targets this solid sphere sized
+				// to match, kept in sync with the visible model. A faint light-blue
+				// tint also gives it some visual purpose: mostly opaque, it keeps the
+				// far hemisphere's wireframe from showing straight through the near
+				// side and cluttering the view.
+				pickSphere = new THREE.Mesh(
+					new THREE.SphereGeometry( DESIRED_DIAMETER / 2, 24, 16 ),
+					new THREE.MeshBasicMaterial( { color: 0xadd8e6, transparent: true, opacity: 0.25 } )
+				);
+				globe.add( pickSphere );
+
+				globeRadius = DESIRED_DIAMETER / 2;
+
+				pinsGroup = new THREE.Group();
+				globe.add( pinsGroup );
+
+				buildPinLocations( window.momentsInTime || [] ).forEach( ( loc ) => {
+
+					const { group, hitMesh } = createPinMarker();
+					hitMesh.userData.location = loc;
+					pinsGroup.add( group );
+					pins.push( { mesh: group, hitMesh, lat: loc.lat, lng: loc.lng } );
+
+				} );
+
+				loadPinCalibration();
+				refreshPinPositions();
+
+				initCardPanel();
+
+				new GLTFLoader().load( 'models/globe.glb', ( gltf ) => {
+
+					const model = gltf.scene;
+
+					const box = new THREE.Box3().setFromObject( model );
+					const center = box.getCenter( new THREE.Vector3() );
+					const size = box.getSize( new THREE.Vector3() );
+
+					model.position.sub( center ); // recenter pivot to the model's own middle
+					model.scale.setScalar( DESIRED_DIAMETER / Math.max( size.x, size.y, size.z ) );
+
+					model.traverse( ( child ) => {
+
+						if ( child.isMesh ) child.material.side = THREE.DoubleSide;
+
+					} );
+
+					globe.add( model );
+
+				} );
+
+				new THREE.TextureLoader().load( 'https://unpkg.com/three-globe/example/img/night-sky.png', ( texture ) => {
+
+					texture.mapping = THREE.EquirectangularReflectionMapping;
+					texture.colorSpace = THREE.SRGBColorSpace;
+					scene.background = texture;
+
+				} );
+
+				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
+				renderer.xr.enabled = true;
+				container.appendChild( renderer.domElement );
+
+				initPinCalibrationUI();
+
+				//
+
+				const controllerModelFactory = new XRControllerModelFactory();
+
+				for ( let i = 0; i < 2; i ++ ) {
+
+					const controller = renderer.xr.getController( i );
+					controller.addEventListener( 'connected', function ( event ) {
+
+						this.add( buildControllerRay( event.data ) );
+
+					} );
+					controller.addEventListener( 'disconnected', function () {
+
+						this.remove( this.children[ 0 ] );
+
+					} );
+					controller.addEventListener( 'selectstart', onControllerSelectStart );
+					controller.addEventListener( 'selectend', onControllerSelectEnd );
+					scene.add( controller );
+					controllers.push( controller );
+
+					const controllerGrip = renderer.xr.getControllerGrip( i );
+					controllerGrip.add( controllerModelFactory.createControllerModel( controllerGrip ) );
+					scene.add( controllerGrip );
+
+				}
+
+				window.addEventListener( 'resize', onWindowResize );
+
+				//
+
+				renderer.domElement.addEventListener( 'pointerdown', onPointerDown );
+				window.addEventListener( 'pointermove', onPointerMove );
+				window.addEventListener( 'pointerup', onPointerUp );
+
+				//
+
+				// XRButton (not VRButton) deliberately - this is the passthrough/AR
+				// variant of vr.html. XRButton requests 'immersive-ar' whenever the
+				// device supports it (falling back to 'immersive-vr' otherwise), so
+				// the globe shows blended over the real room instead of an opaque
+				// backdrop. The 360 photo viewer from vr.html was removed here since
+				// a passthrough session doesn't give it an opaque backdrop to fully
+				// replace the room with.
+				document.body.appendChild( XRButton.createButton( renderer, {
+					'optionalFeatures': [ 'depth-sensing' ],
+					'depthSensing': { 'usagePreference': [ 'gpu-optimized' ], 'dataFormatPreference': [] }
+				} ) );
+
+			}
+
+			function buildControllerRay( data ) {
+
+				let geometry, material;
+
+				switch ( data.targetRayMode ) {
+
+					case 'tracked-pointer':
+
+						geometry = new THREE.BufferGeometry();
+						geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ 0, 0, 0, 0, 0, - 1 ], 3 ) );
+						geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( [ 0.5, 0.5, 0.5, 0, 0, 0 ], 3 ) );
+
+						material = new THREE.LineBasicMaterial( { vertexColors: true, blending: THREE.AdditiveBlending } );
+
+						return new THREE.Line( geometry, material );
+
+					case 'gaze':
+
+						geometry = new THREE.RingGeometry( 0.02, 0.04, 32 ).translate( 0, 0, - 1 );
+						material = new THREE.MeshBasicMaterial( { opacity: 0.5, transparent: true } );
+						return new THREE.Mesh( geometry, material );
+
+				}
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			// Pinned locations - one marker per distinct location in moments.js
+			// (mirrors the dedup in components/globe.js), placed at the most recent
+			// entry's coordinates but carrying every moment at that location for
+			// the card list.
+			function buildPinLocations( moments ) {
+
+				const groups = new Map();
+
+				moments.forEach( ( m ) => {
+
+					if ( ! m || ! m.location ) return;
+
+					const key = ( m.location.name || `${ m.location.lat.toFixed( 1 ) },${ m.location.lng.toFixed( 1 ) }` ).toLowerCase();
+					let group = groups.get( key );
+
+					if ( ! group ) {
+
+						group = { lat: m.location.lat, lng: m.location.lng, name: m.location.name, moments: [], _latestDate: new Date( m.date ) };
+						groups.set( key, group );
+
+					}
+
+					group.moments.push( m );
+
+					const d = new Date( m.date );
+
+					if ( d > group._latestDate ) {
+
+						group._latestDate = d;
+						group.lat = m.location.lat;
+						group.lng = m.location.lng;
+
+					}
+
+				} );
+
+				groups.forEach( ( group ) => {
+
+					group.moments.sort( ( a, b ) => new Date( b.date ) - new Date( a.date ) );
+					delete group._latestDate;
+
+				} );
+
+				return Array.from( groups.values() );
+
+			}
+
+			function createPinMarker() {
+
+				const stalkLength = globeRadius * 0.15;
+				const stalkRadius = 0.006;
+				const headRadius = 0.022;
+				const material = new THREE.MeshBasicMaterial( { color: 0xff4500 } );
+
+				const stalk = new THREE.Mesh( new THREE.CylinderGeometry( stalkRadius, stalkRadius, stalkLength, 8 ), material );
+				stalk.position.y = stalkLength / 2;
+
+				const head = new THREE.Mesh( new THREE.SphereGeometry( headRadius, 12, 10 ), material );
+				head.position.y = stalkLength;
+
+				// Larger invisible sphere, easier to hit than the visible marker -
+				// used for both mouse and VR controller raycasting.
+				const hitMesh = new THREE.Mesh(
+					new THREE.SphereGeometry( headRadius * 2.5, 10, 8 ),
+					new THREE.MeshBasicMaterial( { visible: false } )
+				);
+				hitMesh.position.y = stalkLength;
+
+				const group = new THREE.Group();
+				group.add( stalk, head, hitMesh );
+
+				return { group, hitMesh };
+
+			}
+
+			// Standard lat/lng-to-sphere convention (matches three-globe, the
+			// library the main site's globe is built on). PIN_CALIBRATION corrects
+			// for whatever orientation globe.glb actually uses, once known.
+			function latLngToDirection( lat, lng ) {
+
+				let adjLng = PIN_CALIBRATION.flipLng ? - lng : lng;
+				adjLng += PIN_CALIBRATION.lngOffsetDeg;
+				const adjLat = lat + PIN_CALIBRATION.latOffsetDeg;
+
+				const phi = THREE.MathUtils.degToRad( 90 - adjLat );
+				const theta = THREE.MathUtils.degToRad( 90 - adjLng );
+
+				return new THREE.Vector3(
+					Math.sin( phi ) * Math.cos( theta ),
+					Math.cos( phi ),
+					Math.sin( phi ) * Math.sin( theta )
+				);
+
+			}
+
+			function refreshPinPositions() {
+
+				pins.forEach( ( pin ) => {
+
+					const dir = latLngToDirection( pin.lat, pin.lng );
+					pin.mesh.position.copy( dir ).multiplyScalar( globeRadius );
+					pin.mesh.quaternion.setFromUnitVectors( PIN_UP, dir );
+
+				} );
+
+			}
+
+			// Card UI ---------------------------------------------------------
+			//
+			// A single canvas-textured plane, billboarded to face the viewer,
+			// redrawn each time its content changes. Clicking on it (mouse or VR
+			// controller) is resolved by converting the raycast hit's UV back to
+			// canvas pixels and testing against panelHitRegions, which is rebuilt
+			// on every render alongside the drawing it corresponds to.
+
+			function initCardPanel() {
+
+				panelCanvas = document.createElement( 'canvas' );
+				panelCanvas.width = PANEL_CANVAS_WIDTH;
+				panelCanvas.height = PANEL_CANVAS_HEIGHT;
+				panelCtx = panelCanvas.getContext( '2d' );
+
+				panelTexture = new THREE.CanvasTexture( panelCanvas );
+				panelTexture.colorSpace = THREE.SRGBColorSpace;
+
+				panelMesh = new THREE.Mesh(
+					new THREE.PlaneGeometry( PANEL_WORLD_WIDTH, PANEL_WORLD_HEIGHT ),
+					new THREE.MeshBasicMaterial( { map: panelTexture, transparent: true, side: THREE.DoubleSide } )
+				);
+
+				panelGroup = new THREE.Group();
+				panelGroup.add( panelMesh );
+				panelGroup.visible = false;
+				scene.add( panelGroup );
+
+			}
+
+			// Comic covers are also mirrored locally under fullLink (same-origin);
+			// prefer that over the R2-hosted `.cover` URL, since WebGL refuses to
+			// texture cross-origin images the R2 bucket doesn't send CORS headers
+			// for - canvas-baked or not, that's a hard restriction, not something
+			// fixable from this page alone.
+			function resolveThumbImage( m ) {
+
+				if ( m.isComic && m.fullLink && m.fullLink !== '#' ) return m.fullLink.replace( /\/$/, '' ) + '/cover-thumb.webp';
+
+				let src = m.isComic ? m.cover : m.image;
+				if ( ! src ) return null;
+				if ( src.indexOf( 'attachment://' ) === 0 ) src = src.replace( 'attachment://', '' );
+				return src;
+
+			}
+
+			function resolveFullImage( m ) {
+
+				if ( m.isComic && m.fullLink && m.fullLink !== '#' ) return m.fullLink.replace( /\/$/, '' ) + '/cover.webp';
+
+				let src = m.isComic ? m.cover : m.image;
+				if ( ! src ) return null;
+				if ( src.indexOf( 'attachment://' ) === 0 ) src = src.replace( 'attachment://', '' );
+				return src;
+
+			}
+
+			function formatMomentDate( dateVal ) {
+
+				const d = new Date( dateVal );
+				if ( isNaN( d.getTime() ) ) return '';
+				return d.toLocaleDateString( 'en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' } );
+
+			}
+
+			// Loads (and caches) an image for canvas drawing; calls onReady once it
+			// settles (loaded or failed) so the panel can be redrawn with it.
+			function requestImage( url, onReady ) {
+
+				if ( ! url ) return null;
+
+				let entry = imageCache.get( url );
+
+				if ( ! entry ) {
+
+					entry = { img: new Image(), loaded: false, failed: false };
+					entry.img.crossOrigin = 'anonymous';
+					entry.img.onload = () => { entry.loaded = true; onReady(); };
+					entry.img.onerror = () => { entry.failed = true; onReady(); };
+					entry.img.src = url;
+					imageCache.set( url, entry );
+
+				}
+
+				return entry;
+
+			}
+
+			function drawRoundedRect( ctx, x, y, w, h, r ) {
+
+				ctx.beginPath();
+				ctx.moveTo( x + r, y );
+				ctx.arcTo( x + w, y, x + w, y + h, r );
+				ctx.arcTo( x + w, y + h, x, y + h, r );
+				ctx.arcTo( x, y + h, x, y, r );
+				ctx.arcTo( x, y, x + w, y, r );
+				ctx.closePath();
+
+			}
+
+			// Draws `img` into the x/y/w/h box, cropped to fill it (CSS object-fit: cover).
+			function drawImageCover( ctx, img, x, y, w, h ) {
+
+				const scale = Math.max( w / img.width, h / img.height );
+				const sw = w / scale, sh = h / scale;
+				const sx = ( img.width - sw ) / 2, sy = ( img.height - sh ) / 2;
+				ctx.drawImage( img, sx, sy, sw, sh, x, y, w, h );
+
+			}
+
+			// Word-wraps `text` within maxWidth, truncating with an ellipsis once
+			// maxLines is reached. Returns the y position just below the last line.
+			function wrapText( ctx, text, x, y, maxWidth, lineHeight, maxLines ) {
+
+				const words = ( text || '' ).split( ' ' );
+				let line = '';
+				let lineCount = 0;
+
+				for ( let i = 0; i < words.length; i ++ ) {
+
+					const test = line + words[ i ] + ' ';
+
+					if ( ctx.measureText( test ).width > maxWidth && line !== '' ) {
+
+						lineCount ++;
+
+						if ( maxLines && lineCount >= maxLines ) {
+
+							let truncated = line.trim();
+
+							while ( ctx.measureText( truncated + '…' ).width > maxWidth && truncated.length > 0 ) {
+
+								truncated = truncated.slice( 0, - 1 );
+
+							}
+
+							ctx.fillText( truncated + '…', x, y );
+							return y + lineHeight;
+
+						}
+
+						ctx.fillText( line.trim(), x, y );
+						line = words[ i ] + ' ';
+						y += lineHeight;
+
+					} else {
+
+						line = test;
+
+					}
+
+				}
+
+				ctx.fillText( line.trim(), x, y );
+				return y + lineHeight;
+
+			}
+
+			function openLocationList( location ) {
+
+				activePanel = { mode: 'list', location, moment: null };
+				positionPanelInFrontOfViewer();
+				panelGroup.visible = true;
+				renderCardPanel();
+
+			}
+
+			function openMomentDetail( moment ) {
+
+				if ( ! activePanel ) return;
+
+				activePanel.mode = 'detail';
+				activePanel.moment = moment;
+				renderCardPanel();
+
+			}
+
+			function backToLocationList() {
+
+				if ( ! activePanel ) return;
+
+				activePanel.mode = 'list';
+				activePanel.moment = null;
+				renderCardPanel();
+
+			}
+
+			function closeCardPanel() {
+
+				activePanel = null;
+				panelGroup.visible = false;
+
+			}
+
+			function positionPanelInFrontOfViewer() {
+
+				const camPos = new THREE.Vector3();
+				const camDir = new THREE.Vector3();
+				camera.getWorldPosition( camPos );
+				camera.getWorldDirection( camDir );
+
+				panelGroup.position.copy( camPos ).addScaledVector( camDir, PANEL_DISTANCE );
+				billboardPanelToCamera();
+
+			}
+
+			// Keeps the panel facing the viewer as they move/turn their head.
+			function billboardPanelToCamera() {
+
+				const camPos = new THREE.Vector3();
+				camera.getWorldPosition( camPos );
+				panelGroup.lookAt( camPos );
+
+			}
+
+			function renderCardPanel() {
+
+				if ( ! activePanel ) return;
+
+				panelHitRegions.length = 0;
+
+				const ctx = panelCtx;
+				const W = PANEL_CANVAS_WIDTH, H = PANEL_CANVAS_HEIGHT;
+
+				ctx.clearRect( 0, 0, W, H );
+				ctx.fillStyle = 'rgba(15,15,18,0.96)';
+				drawRoundedRect( ctx, 0, 0, W, H, 24 );
+				ctx.fill();
+				ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+				ctx.lineWidth = 2;
+				drawRoundedRect( ctx, 1, 1, W - 2, H - 2, 24 );
+				ctx.stroke();
+
+				const closeSize = 52;
+				const closeX = W - closeSize - 20, closeY = 20;
+				ctx.fillStyle = 'rgba(255,255,255,0.1)';
+				drawRoundedRect( ctx, closeX, closeY, closeSize, closeSize, 12 );
+				ctx.fill();
+				ctx.fillStyle = '#fff';
+				ctx.font = '600 30px sans-serif';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle';
+				ctx.fillText( '×', closeX + closeSize / 2, closeY + closeSize / 2 + 2 );
+				panelHitRegions.push( { x: closeX, y: closeY, w: closeSize, h: closeSize, onClick: closeCardPanel } );
+
+				if ( activePanel.mode === 'list' ) {
+
+					renderLocationListContent( ctx, W, H, activePanel.location );
+
+				} else {
+
+					renderMomentDetailContent( ctx, W, H, activePanel.moment );
+
+				}
+
+				panelTexture.needsUpdate = true;
+
+			}
+
+			function renderLocationListContent( ctx, W, H, location ) {
+
+				ctx.textAlign = 'left';
+				ctx.textBaseline = 'alphabetic';
+				ctx.fillStyle = '#fff';
+				ctx.font = '600 32px sans-serif';
+				ctx.fillText( location.name || 'Moments', 32, 54 );
+
+				ctx.font = '18px sans-serif';
+				ctx.fillStyle = 'rgba(255,255,255,0.6)';
+				ctx.fillText( location.moments.length + ' moment' + ( location.moments.length === 1 ? '' : 's' ), 32, 80 );
+
+				const gridTop = 108;
+				const padding = 28;
+				const gap = 20;
+				const columns = Math.min( 3, location.moments.length ) || 1;
+				const rows = Math.ceil( location.moments.length / columns );
+				const cardW = ( W - padding * 2 - gap * ( columns - 1 ) ) / columns;
+				const cardH = Math.min( ( H - gridTop - padding - gap * ( rows - 1 ) ) / rows, cardW * 1.15 );
+				const imgH = cardH * 0.6;
+
+				location.moments.forEach( ( m, i ) => {
+
+					const col = i % columns, row = Math.floor( i / columns );
+					const x = padding + col * ( cardW + gap );
+					const y = gridTop + row * ( cardH + gap );
+
+					ctx.fillStyle = 'rgba(255,255,255,0.05)';
+					drawRoundedRect( ctx, x, y, cardW, cardH, 14 );
+					ctx.fill();
+
+					const src = resolveThumbImage( m );
+					const entry = src ? requestImage( src, renderCardPanel ) : null;
+
+					ctx.save();
+					drawRoundedRect( ctx, x, y, cardW, imgH, 12 );
+					ctx.clip();
+
+					if ( entry && entry.loaded ) {
+
+						drawImageCover( ctx, entry.img, x, y, cardW, imgH );
+
+					} else {
+
+						ctx.fillStyle = 'rgba(255,255,255,0.08)';
+						ctx.fillRect( x, y, cardW, imgH );
+
+					}
+
+					ctx.restore();
+
+					ctx.fillStyle = '#fff';
+					ctx.font = '600 19px sans-serif';
+					ctx.textAlign = 'left';
+					const textY = wrapText( ctx, m.caption || m.title || '', x + 14, y + imgH + 28, cardW - 28, 24, 2 );
+
+					ctx.font = '15px sans-serif';
+					ctx.fillStyle = 'rgba(255,255,255,0.55)';
+					ctx.fillText( formatMomentDate( m.date ), x + 14, Math.min( textY, y + cardH - 12 ) );
+
+					panelHitRegions.push( { x, y, w: cardW, h: cardH, onClick: () => openMomentDetail( m ) } );
+
+				} );
+
+			}
+
+			function renderMomentDetailContent( ctx, W, H, m ) {
+
+				const backW = 100, backH = 42;
+				ctx.fillStyle = 'rgba(255,255,255,0.1)';
+				drawRoundedRect( ctx, 20, 20, backW, backH, 10 );
+				ctx.fill();
+				ctx.fillStyle = '#fff';
+				ctx.font = '500 17px sans-serif';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle';
+				ctx.fillText( '‹ Back', 20 + backW / 2, 20 + backH / 2 + 1 );
+				panelHitRegions.push( { x: 20, y: 20, w: backW, h: backH, onClick: backToLocationList } );
+
+				ctx.textAlign = 'left';
+				ctx.textBaseline = 'alphabetic';
+
+				const imgX = 32, imgY = 84, imgW = W - 64, imgH = 256;
+				const src = resolveFullImage( m );
+				const entry = src ? requestImage( src, renderCardPanel ) : null;
+
+				ctx.save();
+				drawRoundedRect( ctx, imgX, imgY, imgW, imgH, 14 );
+				ctx.clip();
+
+				if ( entry && entry.loaded ) {
+
+					drawImageCover( ctx, entry.img, imgX, imgY, imgW, imgH );
+
+				} else {
+
+					ctx.fillStyle = 'rgba(255,255,255,0.08)';
+					ctx.fillRect( imgX, imgY, imgW, imgH );
+
+				}
+
+				ctx.restore();
+
+				let y = imgY + imgH + 40;
+				ctx.fillStyle = '#fff';
+				ctx.font = '600 26px sans-serif';
+				y = wrapText( ctx, m.caption || m.title || '', imgX, y, imgW, 32, 2 );
+
+				ctx.font = '15px sans-serif';
+				ctx.fillStyle = 'rgba(255,255,255,0.5)';
+				ctx.fillText( formatMomentDate( m.date ), imgX, y );
+				y += 30;
+
+				ctx.font = '17px sans-serif';
+				ctx.fillStyle = 'rgba(255,255,255,0.85)';
+				wrapText( ctx, m.snippet || '', imgX, y + 18, imgW, 25, 5 );
+
+			}
+
+			// Converts a raycast hit against the panel into canvas pixels and
+			// invokes whichever panelHitRegions entry it landed on, if any.
+			function handlePanelPointer( raycaster ) {
+
+				if ( ! activePanel || ! panelGroup.visible ) return;
+
+				const hits = raycaster.intersectObject( panelMesh );
+				if ( hits.length === 0 || ! hits[ 0 ].uv ) return;
+
+				const uv = hits[ 0 ].uv;
+				const px = uv.x * PANEL_CANVAS_WIDTH;
+				const py = ( 1 - uv.y ) * PANEL_CANVAS_HEIGHT;
+
+				for ( const region of panelHitRegions ) {
+
+					if ( px >= region.x && px <= region.x + region.w && py >= region.y && py <= region.y + region.h ) {
+
+						region.onClick();
+						break;
+
+					}
+
+				}
+
+			}
+
+			function loadPinCalibration() {
+
+				try {
+
+					const saved = JSON.parse( localStorage.getItem( CAL_STORAGE_KEY ) );
+					if ( saved ) Object.assign( PIN_CALIBRATION, saved );
+
+				} catch ( error ) {}
+
+			}
+
+			function savePinCalibration() {
+
+				try {
+
+					localStorage.setItem( CAL_STORAGE_KEY, JSON.stringify( PIN_CALIBRATION ) );
+
+				} catch ( error ) {}
+
+			}
+
+			function initPinCalibrationUI() {
+
+				const panel = document.getElementById( 'pin-calibration' );
+				const lngInput = document.getElementById( 'cal-lng' );
+				const latInput = document.getElementById( 'cal-lat' );
+				const flipInput = document.getElementById( 'cal-flip' );
+				const readout = document.getElementById( 'cal-readout' );
+				const resetButton = document.getElementById( 'cal-reset' );
+
+				function refreshUI() {
+
+					lngInput.value = PIN_CALIBRATION.lngOffsetDeg;
+					latInput.value = PIN_CALIBRATION.latOffsetDeg;
+					flipInput.checked = PIN_CALIBRATION.flipLng;
+					readout.textContent = JSON.stringify( PIN_CALIBRATION, null, 2 );
+
+				}
+
+				function onChange() {
+
+					PIN_CALIBRATION.lngOffsetDeg = Number( lngInput.value ) || 0;
+					PIN_CALIBRATION.latOffsetDeg = Number( latInput.value ) || 0;
+					PIN_CALIBRATION.flipLng = flipInput.checked;
+
+					refreshPinPositions();
+					readout.textContent = JSON.stringify( PIN_CALIBRATION, null, 2 );
+					savePinCalibration();
+
+				}
+
+				lngInput.addEventListener( 'input', onChange );
+				latInput.addEventListener( 'input', onChange );
+				flipInput.addEventListener( 'change', onChange );
+				resetButton.addEventListener( 'click', () => {
+
+					Object.assign( PIN_CALIBRATION, DEFAULT_PIN_CALIBRATION );
+
+					refreshUI();
+					refreshPinPositions();
+					savePinCalibration();
+
+				} );
+
+				renderer.xr.addEventListener( 'sessionstart', () => { panel.style.display = 'none'; } );
+				renderer.xr.addEventListener( 'sessionend', () => { panel.style.display = ''; } );
+
+				refreshUI();
+
+			}
+
+			// Desktop/touch: drag on the globe to spin it. Moving the pointer left
+			// spins the near surface to the left (and released with some speed, it
+			// keeps coasting - see COAST_DURATION below). A pin catches the click
+			// first - the pointer only counts as a "click" on it if it barely
+			// moved before release, otherwise it falls through to a normal drag.
+			function onPointerDown( event ) {
+
+				if ( renderer.xr.isPresenting ) return;
+
+				pointerNDC.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				pointerNDC.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+				dragRaycaster.setFromCamera( pointerNDC, camera );
+
+				if ( activePanel ) {
+
+					handlePanelPointer( dragRaycaster );
+					return;
+
+				}
+
+				const pinHit = dragRaycaster.intersectObjects( pins.map( ( p ) => p.hitMesh ) )[ 0 ];
+				pendingPinClick = pinHit ? pinHit.object.userData.location : null;
+
+				if ( ! pinHit && dragRaycaster.intersectObject( pickSphere ).length === 0 ) return;
+
+				isMouseDragging = true;
+				autoRotate = false;
+				liveVelocity.set( 0, 0 );
+				coastVelocity.set( 0, 0 );
+				pointerPrev.set( event.clientX, event.clientY );
+				pointerPrevTime = performance.now();
+				pointerDownPos.set( event.clientX, event.clientY );
+
+			}
+
+			function onPointerMove( event ) {
+
+				if ( ! isMouseDragging ) return;
+
+				const now = performance.now();
+				const dt = Math.max( ( now - pointerPrevTime ) / 1000, 1 / 1000 );
+
+				const deltaX = event.clientX - pointerPrev.x;
+				const deltaY = event.clientY - pointerPrev.y;
+				const yaw = deltaX * 0.005;
+				const pitch = - deltaY * 0.005;
+
+				applyDragRotation( yaw, pitch );
+				liveVelocity.set( yaw / dt, pitch / dt );
+
+				pointerPrev.set( event.clientX, event.clientY );
+				pointerPrevTime = now;
+
+			}
+
+			function onPointerUp( event ) {
+
+				if ( ! isMouseDragging ) return;
+
+				isMouseDragging = false;
+
+				if ( pendingPinClick ) {
+
+					const moved = pointerDownPos.distanceTo( new THREE.Vector2( event.clientX, event.clientY ) );
+					const location = pendingPinClick;
+					pendingPinClick = null;
+
+					if ( moved < CLICK_MOVE_THRESHOLD_PX ) {
+
+						openLocationList( location );
+						return;
+
+					}
+
+				}
+
+				beginCoast();
+
+			}
+
+			// VR: pull the trigger while pointing at the globe (either hand) to grab
+			// it, then move your hand like dragging it - same feel and the same
+			// left/right sense as the mouse gesture above, tracked in world space.
+			const VR_DRAG_SENSITIVITY = 3; // radians of rotation per meter of hand travel
+			const _controllerPos = new THREE.Vector3();
+
+			function onControllerSelectStart() {
+
+				if ( activePanel ) {
+
+					dragRaycaster.setFromXRController( this );
+					handlePanelPointer( dragRaycaster );
+					return;
+
+				}
+
+				if ( grabbingController ) return;
+
+				dragRaycaster.setFromXRController( this );
+
+				const pinHit = dragRaycaster.intersectObjects( pins.map( ( p ) => p.hitMesh ) )[ 0 ];
+				pendingPinClickController = pinHit ? this : null;
+				pendingPinClick = pinHit ? pinHit.object.userData.location : null;
+
+				if ( ! pinHit && dragRaycaster.intersectObject( pickSphere ).length === 0 ) return;
+
+				grabbingController = this;
+				autoRotate = false;
+				liveVelocity.set( 0, 0 );
+				coastVelocity.set( 0, 0 );
+				this.userData.prevWorldPos = this.getWorldPosition( new THREE.Vector3() );
+				controllerSelectStartPos.copy( this.userData.prevWorldPos );
+
+			}
+
+			function onControllerSelectEnd() {
+
+				if ( grabbingController !== this ) return;
+
+				grabbingController = null;
+
+				if ( pendingPinClickController === this ) {
+
+					const moved = controllerSelectStartPos.distanceTo( this.getWorldPosition( new THREE.Vector3() ) );
+					const location = pendingPinClick;
+					pendingPinClickController = null;
+					pendingPinClick = null;
+
+					if ( moved < CLICK_MOVE_THRESHOLD_M ) {
+
+						openLocationList( location );
+						return;
+
+					}
+
+				}
+
+				beginCoast();
+
+			}
+
+			function updateControllerGrab( dtSeconds ) {
+
+				grabbingController.getWorldPosition( _controllerPos );
+				const prevPos = grabbingController.userData.prevWorldPos;
+
+				const deltaX = _controllerPos.x - prevPos.x;
+				const deltaY = _controllerPos.y - prevPos.y;
+				const yaw = deltaX * VR_DRAG_SENSITIVITY;
+				const pitch = - deltaY * VR_DRAG_SENSITIVITY;
+
+				applyDragRotation( yaw, pitch );
+				if ( dtSeconds > 0 ) liveVelocity.set( yaw / dtSeconds, pitch / dtSeconds );
+
+				prevPos.copy( _controllerPos );
+
+			}
+
+			function applyDragRotation( yaw, pitch ) {
+
+				globe.rotation.y += yaw;
+				globe.rotation.x = THREE.MathUtils.clamp( globe.rotation.x + pitch, - Math.PI / 2, Math.PI / 2 );
+
+			}
+
+			function beginCoast() {
+
+				coastVelocity.copy( liveVelocity );
+				coastElapsed = 0;
+
+			}
+
+			//
+
+			function animate() {
+
+				timer.update();
+
+				const dtSeconds = timer.getDelta();
+				const delta = dtSeconds * 60;
+
+				if ( activePanel ) billboardPanelToCamera();
+
+				if ( grabbingController ) {
+
+					updateControllerGrab( dtSeconds );
+
+				} else if ( isMouseDragging ) {
+
+					// applied directly in onPointerMove as events arrive
+
+				} else if ( coastVelocity.lengthSq() > 0 ) {
+
+					// Inertia: a flick keeps the globe spinning at release speed,
+					// easing down to a stop over COAST_DURATION seconds.
+					coastElapsed += dtSeconds;
+
+					if ( coastElapsed >= COAST_DURATION ) {
+
+						coastVelocity.set( 0, 0 );
+
+					} else {
+
+						const remaining = 1 - ( coastElapsed / COAST_DURATION );
+						const easedScale = remaining * remaining;
+
+						applyDragRotation( coastVelocity.x * easedScale * dtSeconds, coastVelocity.y * easedScale * dtSeconds );
+
+					}
+
+				} else if ( autoRotate ) {
+
+					globe.rotation.y += 0.0015 * delta;
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+	</body>
+</html>
